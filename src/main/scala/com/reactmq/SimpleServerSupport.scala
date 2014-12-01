@@ -6,6 +6,6 @@ import akka.actor.ActorSystem
 
 trait SimpleServerSupport {
   implicit val system = ActorSystem()
-  val sendServerAddress     = new InetSocketAddress("localhost", 9182)
-  val receiveServerAddress  = new InetSocketAddress("localhost", 9183)
+  val sendServerAddress = new InetSocketAddress("localhost", 9182)
+  val receiveServerAddress = new InetSocketAddress("localhost", 9183)
 }

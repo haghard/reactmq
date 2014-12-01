@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.FlowMaterializer
 import akka.util.Timeout
 import scala.concurrent.duration._
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.{ Promise, Future }
 
 trait ReactiveStreamsSupport extends Logging {
   implicit def system: ActorSystem
@@ -15,9 +15,9 @@ trait ReactiveStreamsSupport extends Logging {
 
   implicit val materializer = FlowMaterializer()
 
-  def handleIOFailure(ioFuture: Future[Any], msg: => String, failPromise: Option[Promise[Unit]] = None) {
+  def handleIOFailure(ioFuture: Future[Any], msg: ⇒ String, failPromise: Option[Promise[Unit]] = None) {
     ioFuture.onFailure {
-      case e: Exception =>
+      case e: Exception ⇒
         logger.error(msg, e)
         failPromise.foreach(_.failure(e))
     }

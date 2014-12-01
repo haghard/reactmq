@@ -37,9 +37,9 @@ class ReconcileFrames() {
 
   private def tryReadContents(): List[String] = {
     nextContentSize match {
-      case Some(contentSize) =>
+      case Some(contentSize) ⇒
         tryReadContentsWithNextSize(contentSize)
-      case None =>
+      case None ⇒
         if (buffer.size >= SizeBytes) {
           val contentSize = buffer.take(SizeBytes).toByteBuffer.getInt
           nextContentSize = Some(contentSize)

@@ -1,8 +1,8 @@
 package com.reactmq
 
 import akka.actor.ActorRef
-import akka.stream.actor.{MaxInFlightRequestStrategy, ActorSubscriber}
-import com.reactmq.queue.{SendMessage, SentMessage}
+import akka.stream.actor.{ MaxInFlightRequestStrategy, ActorSubscriber }
+import com.reactmq.queue.{ SendMessage, SentMessage }
 import akka.stream.actor.ActorSubscriberMessage.OnNext
 
 class SendToQueueSubscriber(queueActor: ActorRef) extends ActorSubscriber {
@@ -14,10 +14,10 @@ class SendToQueueSubscriber(queueActor: ActorRef) extends ActorSubscriber {
   }
 
   override def receive = {
-    case OnNext(msg: String) =>
+    case OnNext(msg: String) ⇒
       queueActor ! SendMessage(msg)
       inFlight += 1
 
-    case SentMessage(_) => inFlight -= 1
+    case SentMessage(_) ⇒ inFlight -= 1
   }
 }

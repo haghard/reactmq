@@ -9,7 +9,7 @@ import com.reactmq.util.NowProvider
  * Copied & simplified from ElasticMQ.
  */
 trait QueueActorMessageOps extends Logging {
-  this: QueueActorStorage =>
+  this: QueueActorStorage ⇒
 
   private val visibilityTimeout = 10.seconds
 
@@ -37,8 +37,8 @@ trait QueueActorMessageOps extends Logging {
         acc
       } else {
         receiveMessage(deliveryTime, computeNextDelivery) match {
-          case None => acc
-          case Some(msg) => doReceiveMessages(left - 1, msg :: acc)
+          case None      ⇒ acc
+          case Some(msg) ⇒ doReceiveMessages(left - 1, msg :: acc)
         }
       }
     }
@@ -78,7 +78,7 @@ trait QueueActorMessageOps extends Logging {
 
   protected def deleteMessage(id: String) {
     messagesById.remove(id).fold(logger.debug(s"Unknown message: $id")) {
-      _ => logger.debug(s"Deleted message $id")
+      _ ⇒ logger.debug(s"Deleted message $id")
     }
   }
 }

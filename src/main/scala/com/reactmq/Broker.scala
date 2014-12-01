@@ -2,17 +2,16 @@ package com.reactmq
 
 import java.net.InetSocketAddress
 
-import akka.stream.actor.{ActorPublisher, ActorSubscriber}
-import akka.actor.{ActorSystem, Props}
+import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
+import akka.actor.{ ActorSystem, Props }
 import akka.io.IO
 import akka.stream.io.StreamTcp
 import akka.pattern.ask
-import akka.stream.scaladsl.{BlackholeSink, ForeachSink, Source, Sink}
-import com.reactmq.queue.{MessageData, DeleteMessage, QueueActor}
+import akka.stream.scaladsl.{ BlackholeSink, ForeachSink, Source, Sink }
+import com.reactmq.queue.{ MessageData, DeleteMessage, QueueActor }
 import Framing._
 
-class Broker(sendServerAddress: InetSocketAddress, receiveServerAddress: InetSocketAddress)
-  (implicit val system: ActorSystem) extends ReactiveStreamsSupport {
+class Broker(sendServerAddress: InetSocketAddress, receiveServerAddress: InetSocketAddress)(implicit val system: ActorSystem) extends ReactiveStreamsSupport {
 
   def run(): Unit = {
     val ioExt = IO(StreamTcp)
@@ -22,10 +21,10 @@ class Broker(sendServerAddress: InetSocketAddress, receiveServerAddress: InetSoc
     val queueActor = system.actorOf(Props[QueueActor])
 
     bindSendFuture.onSuccess {
-      case serverBinding: StreamTcp.TcpServerBinding =>
+      case serverBinding: StreamTcp.TcpServerBinding ⇒
         logger.info("Broker: send bound")
 
-        Source(serverBinding.connectionStream).runWith(ForeachSink[StreamTcp.IncomingTcpConnection] { conn =>
+        Source(serverBinding.connectionStream).runWith(ForeachSink[StreamTcp.IncomingTcpConnection] { conn ⇒
           logger.info(s"Broker: send client connected (${conn.remoteAddress})")
 
           val sendToQueueSubscriber = ActorSubscriber[String](system.actorOf(Props(new SendToQueueSubscriber(queueActor))))
@@ -39,10 +38,10 @@ class Broker(sendServerAddress: InetSocketAddress, receiveServerAddress: InetSoc
     }
 
     bindReceiveFuture.onSuccess {
-      case serverBinding: StreamTcp.TcpServerBinding =>
+      case serverBinding: StreamTcp.TcpServerBinding ⇒
         logger.info("Broker: receive bound")
 
-        Source(serverBinding.connectionStream).runWith(ForeachSink[StreamTcp.IncomingTcpConnection] { conn =>
+        Source(serverBinding.connectionStream).runWith(ForeachSink[StreamTcp.IncomingTcpConnection] { conn ⇒
           logger.info(s"Broker: receive client connected (${conn.remoteAddress})")
 
           val receiveFromQueuePublisher = ActorPublisher[MessageData](system.actorOf(Props(new ReceiveFromQueuePublisher(queueActor))))

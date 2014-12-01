@@ -6,33 +6,33 @@ import akka.persistence.PersistentActor
 import scala.annotation.tailrec
 
 trait QueueActorReceive extends QueueActorMessageOps {
-  this: QueueActorStorage with PersistentActor =>
+  this: QueueActorStorage with PersistentActor ⇒
 
   private val awaitingActors = new collection.mutable.HashMap[ActorRef, Int]()
 
   def handleQueueMsg: Receive = {
-    case SendMessage(content) =>
+    case SendMessage(content) ⇒
       val msg = sendMessage(content)
-      persistAsync(msg.toMessageAdded) { msgAdded =>
+      persistAsync(msg.toMessageAdded) { msgAdded ⇒
         sender() ! SentMessage(msgAdded.id)
         tryReply()
       }
 
-    case ReceiveMessages(count) =>
+    case ReceiveMessages(count) ⇒
       addAwaitingActor(sender(), count)
       tryReply()
 
-    case DeleteMessage(id) =>
+    case DeleteMessage(id) ⇒
       deleteMessage(id)
-      persistAsync(MessageDeleted(id)) { _ => }
+      persistAsync(MessageDeleted(id)) { _ ⇒ }
   }
 
   @tailrec
   private def tryReply() {
     awaitingActors.headOption match {
-      case Some((actor, messageCount)) =>
+      case Some((actor, messageCount)) ⇒
         val received = receiveMessages(messageCount)
-        persistAsync(received.map(_._2)) { _ => }
+        persistAsync(received.map(_._2)) { _ ⇒ }
 
         if (received != Nil) {
           actor ! ReceivedMessages(received.map(_._1))
@@ -46,7 +46,7 @@ trait QueueActorReceive extends QueueActorMessageOps {
             tryReply() // maybe we can send more replies
           }
         }
-      case _ => // do nothing
+      case _ ⇒ // do nothing
     }
   }
 
