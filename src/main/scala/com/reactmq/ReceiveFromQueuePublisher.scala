@@ -1,8 +1,8 @@
 package com.reactmq
 
-import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
+import akka.actor.{ ActorLogging, ActorRef }
 import akka.stream.actor.ActorPublisher
-import akka.actor.ActorRef
+import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import com.reactmq.queue.{ ReceivedMessages, ReceiveMessages, MessageData }
 
 class ReceiveFromQueuePublisher(queueActor: ActorRef) extends ActorPublisher[MessageData] {

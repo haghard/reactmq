@@ -6,12 +6,6 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.{ Actor, Props, PoisonPill, ActorSystem }
 import akka.contrib.pattern.{ ClusterReceptionistExtension, ClusterSingletonManager }
 
-/*
- * i = 1, 2, 3 - the broker id
- * Cluster port:  9170 + i
- * Sender port:   9180 + i
- * Receiver port: 9190 + i
- */
 class BrokerManager(clusterPort: Int) {
   def run(): Unit = {
     val conf = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$clusterPort")

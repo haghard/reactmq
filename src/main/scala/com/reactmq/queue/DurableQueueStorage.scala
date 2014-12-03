@@ -4,14 +4,13 @@ import scala.collection.mutable
 import java.util.UUID
 import com.reactmq.util.NowProvider
 
-/**
- * Copied & simplified from ElasticMQ.
- */
-trait QueueActorStorage {
+trait DurableQueueStorage {
+
   def nowProvider: NowProvider
 
-  var messageQueue = mutable.PriorityQueue[InternalMessage]()
-  val messagesById = mutable.HashMap[String, InternalMessage]()
+  //internal state
+  protected var messageQueue = mutable.PriorityQueue[InternalMessage]()
+  protected val messagesById = mutable.HashMap[String, InternalMessage]()
 
   case class InternalMessage(
       id: String,

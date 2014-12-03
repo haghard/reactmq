@@ -27,6 +27,12 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
 
+
+resolvers += "Sonatype Snapshots Repo"  at "https://oss.sonatype.org/content/groups/public"
+resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+resolvers += "Local Maven Repository" at "file:///" + localMvnRepo
+resolvers += "Local Ivy Repository" at "file:///" + ivy
+
 scalacOptions in Compile ++= Seq(
   "-feature",
   "-deprecation",
@@ -46,17 +52,24 @@ javacOptions in Compile ++= Seq("-source", "1.6", "-target", "1.6", "-Xlint:unch
 
 libraryDependencies ++= Seq(
   // akka
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-  "com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion,
-  "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
-  "com.typesafe.akka" %% "akka-contrib" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream-experimental" % "0.11",
+  "com.typesafe.akka"   %% "akka-actor"                     % akkaVersion,
+  "com.typesafe.akka"   %% "akka-persistence-experimental"  % akkaVersion,
+  "com.typesafe.akka"   %% "akka-cluster"                   % akkaVersion,
+  "com.typesafe.akka"   %% "akka-contrib"                   % akkaVersion,
+  "com.typesafe.akka"   %% "akka-stream-experimental"       % "0.11",
+  "com.github.ddevore"  %% "akka-persistence-mongo-casbah"  % "0.7.3-SNAPSHOT",
+  "com.typesafe.akka"   %%  "akka-slf4j"                    % akkaVersion,
+
   // util
-  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-  "ch.qos.logback" % "logback-classic" % "1.1.2",
   "org.scalatest" %% "scalatest" % "2.2.2" % "test",
   "joda-time" % "joda-time" % "2.5",
   "org.joda" % "joda-convert" % "1.7"
+)
+
+libraryDependencies ++= Seq(
+  "org.slf4j"               %   "slf4j-api"       % "1.7.7",
+  "ch.qos.logback"          %   "logback-core"    % "1.1.2",
+  "ch.qos.logback"          %   "logback-classic" % "1.1.2"
 )
 
 publishMavenStyle := true

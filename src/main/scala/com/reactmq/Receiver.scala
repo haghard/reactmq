@@ -21,8 +21,7 @@ class Receiver(receiveServerAddress: InetSocketAddress)(implicit val system: Act
     val connectFuture = IO(StreamTcp) ? StreamTcp.Connect(receiveServerAddress)
     connectFuture.onSuccess {
       case binding: StreamTcp.OutgoingTcpConnection ⇒
-        logger.info("Receiver: connected to broker")
-
+        system.log.info("Receiver: connected to broker")
         val reconcileFrames = new ReconcileFrames()
 
         FlowGraph { implicit b ⇒
@@ -33,13 +32,22 @@ class Receiver(receiveServerAddress: InetSocketAddress)(implicit val system: Act
             .mapConcat(reconcileFrames.apply)
             .map(MessageData.decodeFromString)
             .map { md ⇒
-              logger.debug(s"Receiver: received msg: $md")
+              system.log.info(s"Receiver: received msg: $md")
               createFrame(md.id)
             }
 
           split ~> mainFlow ~> Sink(binding.outputStream)
           split ~> OnCompleteSink[ByteString] { t ⇒ completionPromise.complete(t); () }
         }.run()
+
+      /*Source(binding.inputStream)
+          .mapConcat(reconcileFrames.apply)
+          .map(MessageData.decodeFromString)
+          .map { md ⇒
+            system.log.info(s"Receiver: received msg: $md")
+            createFrame(md.id)
+          }.to(Sink(binding.outputStream)).run()
+        */
     }
 
     handleIOFailure(connectFuture, "Receiver: failed to connect to broker", Some(completionPromise))

@@ -1,17 +1,16 @@
 package com.reactmq.queue
 
+import akka.actor.ActorLogging
 import scala.annotation.tailrec
-import com.reactmq.Logging
 import scala.concurrent.duration._
 import com.reactmq.util.NowProvider
 
-/**
- * Copied & simplified from ElasticMQ.
- */
-trait QueueActorMessageOps extends Logging {
-  this: QueueActorStorage ⇒
+trait DurableQueueOps {
+  this: DurableQueueStorage with ActorLogging ⇒
 
-  private val visibilityTimeout = 10.seconds
+  private lazy val visibilityTimeout = 10.seconds
+
+  type ReceiveData = (MessageData, MessageNextDeliveryUpdated)
 
   def nowProvider: NowProvider
 
@@ -19,13 +18,9 @@ trait QueueActorMessageOps extends Logging {
     val internalMessage = InternalMessage.from(content)
     messageQueue += internalMessage
     messagesById(internalMessage.id) = internalMessage
-
-    logger.debug(s"Sent message with id ${internalMessage.id}")
-
+    log.info("incoming message {}", internalMessage)
     internalMessage
   }
-
-  type ReceiveData = (MessageData, MessageNextDeliveryUpdated)
 
   protected def receiveMessages(count: Int): List[ReceiveData] = {
 
@@ -64,8 +59,7 @@ trait QueueActorMessageOps extends Logging {
 
         messageQueue += internalMessage
 
-        logger.debug(s"Receiving message $id")
-
+        log.info(s"Got message {} for delivery ", id)
         Some(internalMessage.toMessageData, internalMessage.toMessageNextDeliveryUpdated)
       } else {
         // Deleted msg - trying again
@@ -77,8 +71,8 @@ trait QueueActorMessageOps extends Logging {
   private def computeNextDelivery = nowProvider.nowMillis + visibilityTimeout.toMillis
 
   protected def deleteMessage(id: String) {
-    messagesById.remove(id).fold(logger.debug(s"Unknown message: $id")) {
-      _ ⇒ logger.debug(s"Deleted message $id")
+    messagesById.remove(id).fold(log.debug(s"Unknown message: $id")) {
+      _ ⇒ log.info(s"Deleted confirmed message $id")
     }
   }
 }

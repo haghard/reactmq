@@ -6,7 +6,7 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent.{ Promise, Future }
 
-trait ReactiveStreamsSupport extends Logging {
+trait ReactiveStreamsSupport {
   implicit def system: ActorSystem
 
   implicit val dispatcher = system.dispatcher
@@ -18,7 +18,7 @@ trait ReactiveStreamsSupport extends Logging {
   def handleIOFailure(ioFuture: Future[Any], msg: ⇒ String, failPromise: Option[Promise[Unit]] = None) {
     ioFuture.onFailure {
       case e: Exception ⇒
-        logger.error(msg, e)
+        system.log.info("IO error {}", e.getMessage)
         failPromise.foreach(_.failure(e))
     }
   }

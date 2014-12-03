@@ -1,14 +1,14 @@
 package com.reactmq.queue
 
-import akka.actor.ActorRef
-import akka.persistence.PersistentActor
-
+import scala.collection._
 import scala.annotation.tailrec
+import akka.actor.{ ActorLogging, ActorRef }
+import akka.persistence.{ PersistenceFailure, PersistentActor }
 
-trait QueueActorReceive extends QueueActorMessageOps {
-  this: QueueActorStorage with PersistentActor ⇒
+trait DurableDurableQueueReceive extends DurableQueueOps {
+  this: DurableQueueStorage with PersistentActor with ActorLogging ⇒
 
-  private val awaitingActors = new collection.mutable.HashMap[ActorRef, Int]()
+  private lazy val receivers = new mutable.LinkedHashMap[ActorRef, Int]()
 
   def handleQueueMsg: Receive = {
     case SendMessage(content) ⇒
@@ -25,32 +25,37 @@ trait QueueActorReceive extends QueueActorMessageOps {
     case DeleteMessage(id) ⇒
       deleteMessage(id)
       persistAsync(MessageDeleted(id)) { _ ⇒ }
+
+    case PersistenceFailure(payload, seqNum, cause) ⇒
+      log.info("Journal fails to write a event: {}", cause.getMessage)
   }
 
   @tailrec
   private def tryReply() {
-    awaitingActors.headOption match {
+    receivers.headOption match {
       case Some((actor, messageCount)) ⇒
         val received = receiveMessages(messageCount)
         persistAsync(received.map(_._2)) { _ ⇒ }
 
         if (received != Nil) {
           actor ! ReceivedMessages(received.map(_._1))
-          logger.debug(s"Replying to $actor with ${received.size} messages.")
 
           val newMessageCount = messageCount - received.size
           if (newMessageCount > 0) {
-            awaitingActors(actor) = newMessageCount
+            receivers += (actor -> newMessageCount)
+            //receivers(actor) = newMessageCount
           } else {
-            awaitingActors.remove(actor)
+            log.info("Remove actor from awaiting {}", actor)
+            receivers -= actor
             tryReply() // maybe we can send more replies
           }
         }
-      case _ ⇒ // do nothing
+      case _ ⇒
     }
   }
 
   private def addAwaitingActor(actor: ActorRef, count: Int) {
-    awaitingActors(actor) = awaitingActors.getOrElse(actor, 0) + count
+    receivers += (actor -> (receivers.getOrElse(actor, 0) + count))
+    log.info("Current receivers were updated {}", receivers)
   }
 }

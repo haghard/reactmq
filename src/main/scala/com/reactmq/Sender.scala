@@ -21,7 +21,7 @@ class Sender(sendServerAddress: InetSocketAddress)(implicit val system: ActorSys
     val connectFuture = IO(StreamTcp) ? StreamTcp.Connect(sendServerAddress)
     connectFuture.onSuccess {
       case binding: StreamTcp.OutgoingTcpConnection ⇒
-        logger.info("Sender: connected to broker")
+        system.log.info("Sender: connected to broker")
 
         def nextChar = (ThreadLocalRandom.current().nextInt(91 - 65) + 65).toChar
         val senderName = List.fill(5)(nextChar).mkString
@@ -29,7 +29,7 @@ class Sender(sendServerAddress: InetSocketAddress)(implicit val system: ActorSys
 
         Source(1.second, 1.second, () ⇒ { idx += 1; s"Message $idx from $senderName" })
           .map { msg ⇒
-            logger.debug(s"Sender: sending $msg")
+            system.log.info(s"Sender: sending $msg")
             createFrame(msg)
           }
           .runWith(Sink(binding.outputStream))
