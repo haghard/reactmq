@@ -4,12 +4,12 @@ import akka.actor.{ ActorLogging, Props }
 import akka.persistence._
 import com.reactmq.util.NowProvider
 
-object DurableDurableDurableDurableDurableQueue {
+object DurableQueue {
 
-  def props = Props(new DurableDurableDurableDurableDurableQueue)
+  def props = Props(new DurableQueue)
 }
 
-class DurableDurableDurableDurableDurableQueue extends PersistentActor with ActorLogging
+class DurableQueue extends PersistentActor with ActorLogging
     with DurableQueueStorage
     with DurableDurableQueueReceive
     with DurableQueueRecover {

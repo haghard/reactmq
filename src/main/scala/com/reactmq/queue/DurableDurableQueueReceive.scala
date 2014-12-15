@@ -13,6 +13,7 @@ trait DurableDurableQueueReceive extends DurableQueueOps {
   def handleQueueMsg: Receive = {
     case SendMessage(content) ⇒
       val msg = sendMessage(content)
+      log.info("Incoming message: {}", msg)
       persistAsync(msg.toMessageAdded) { msgAdded ⇒
         sender() ! SentMessage(msgAdded.id)
         tryReply()

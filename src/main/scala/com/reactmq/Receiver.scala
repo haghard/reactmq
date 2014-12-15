@@ -56,6 +56,6 @@ class Receiver(receiveServerAddress: InetSocketAddress)(implicit val system: Act
   }
 }
 
-object SimpleReceiver extends App with SimpleServerSupport {
+object SimpleReceiver extends App with LocalServerSupport {
   new Receiver(receiveServerAddress).run()
 }

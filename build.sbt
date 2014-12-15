@@ -1,10 +1,9 @@
-import com.typesafe.sbt.SbtScalariform.ScalariformKeys
-import scalariform.formatter.preferences._
 import com.scalapenos.sbt.prompt.SbtPrompt.autoImport._
+import com.typesafe.sbt.SbtScalariform.ScalariformKeys
+import sbt.Keys._
 import sbt._
-import Keys._
-import sbtassembly.Plugin._
-import AssemblyKeys._
+
+import scalariform.formatter.preferences._
 
 organization  := "com.haghard"
 name := "reactmq"
@@ -57,8 +56,9 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"   %% "akka-cluster"                   % akkaVersion,
   "com.typesafe.akka"   %% "akka-contrib"                   % akkaVersion,
   "com.typesafe.akka"   %% "akka-stream-experimental"       % "0.11",
-  "com.github.ddevore"  %% "akka-persistence-mongo-casbah"  % "0.7.3-SNAPSHOT",
+  "com.github.ddevore"  %% "akka-persistence-mongo-casbah"  % "0.7.4",
   "com.typesafe.akka"   %%  "akka-slf4j"                    % akkaVersion,
+  "io.spray"            %%  "spray-json"                    % "1.2.6",
 
   // util
   "org.scalatest" %% "scalatest" % "2.2.2" % "test",
