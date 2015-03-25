@@ -10,8 +10,10 @@ trait DurableQueueRecover {
   def handleQueueEvent: Receive = {
     case MessageAdded(id, nextDelivery, content) ⇒
       messagesById += (id -> InternalMessage(id, nextDelivery, content))
+
     case MessageNextDeliveryUpdated(id, nextDelivery) ⇒
       messagesById.get(id).foreach(_.nextDelivery = nextDelivery)
+
     case MessageDeleted(id) ⇒
       messagesById -= id
 

@@ -8,12 +8,11 @@ import akka.persistence.{ PersistenceFailure, PersistentActor }
 trait DurableDurableQueueReceive extends DurableQueueOps {
   this: DurableQueueStorage with PersistentActor with ActorLogging ⇒
 
-  private lazy val receivers = new mutable.LinkedHashMap[ActorRef, Int]()
+  private val subscribers = new mutable.LinkedHashMap[ActorRef, Int]()
 
   def handleQueueMsg: Receive = {
     case SendMessage(content) ⇒
       val msg = sendMessage(content)
-      log.info("Incoming message: {}", msg)
       persistAsync(msg.toMessageAdded) { msgAdded ⇒
         sender() ! SentMessage(msgAdded.id)
         tryReply()
@@ -33,7 +32,7 @@ trait DurableDurableQueueReceive extends DurableQueueOps {
 
   @tailrec
   private def tryReply() {
-    receivers.headOption match {
+    subscribers.headOption match {
       case Some((actor, messageCount)) ⇒
         val received = receiveMessages(messageCount)
         persistAsync(received.map(_._2)) { _ ⇒ }
@@ -43,11 +42,10 @@ trait DurableDurableQueueReceive extends DurableQueueOps {
 
           val newMessageCount = messageCount - received.size
           if (newMessageCount > 0) {
-            receivers += (actor -> newMessageCount)
-            //receivers(actor) = newMessageCount
+            subscribers += (actor -> newMessageCount)
           } else {
             log.info("Remove actor from awaiting {}", actor)
-            receivers -= actor
+            subscribers -= actor
             tryReply() // maybe we can send more replies
           }
         }
@@ -56,7 +54,7 @@ trait DurableDurableQueueReceive extends DurableQueueOps {
   }
 
   private def addAwaitingActor(actor: ActorRef, count: Int) {
-    receivers += (actor -> (receivers.getOrElse(actor, 0) + count))
-    log.info("Current receivers were updated {}", receivers)
+    subscribers += (actor -> (subscribers.getOrElse(actor, 0) + count))
+    log.info("Current subscriber's list was updated {}", subscribers)
   }
 }

@@ -1,16 +1,18 @@
 package com.reactmq.cluster
 
-import akka.actor.{ ActorSystem, AddressFromURIString, RootActorPath }
-import akka.contrib.pattern.ClusterClient
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import akka.contrib.pattern.ClusterClient
+import akka.actor.{ ActorSystem, AddressFromURIString, RootActorPath }
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
 trait ClusterClientSupport {
+
+  implicit val timeout = Timeout(10.seconds)
 
   def start(name: String, runClient: (BrokerAddresses, ActorSystem) ⇒ Future[Unit]) {
     val conf = ConfigFactory.load("cluster-client")
@@ -25,7 +27,6 @@ trait ClusterClientSupport {
     val clusterClient = system.actorOf(ClusterClient.props(initialContacts), "cluster-client")
 
     def go(): Unit = {
-      implicit val timeout = Timeout(10.seconds)
       val completionFuture = (clusterClient ? ClusterClient.Send("/user/broker-manager/broker", GetBrokerAddresses, localAffinity = false))
         .mapTo[BrokerAddresses]
         .flatMap { ba ⇒
@@ -34,7 +35,7 @@ trait ClusterClientSupport {
         }
 
       completionFuture.onComplete { result ⇒
-        system.log.info(s"$name completed with result $result. Scheduling restart after 1 second.")
+        system.log.info(s"$name completed with result $result. Scheduling restart .")
         system.scheduler.scheduleOnce(5.second, new Runnable {
           override def run() = go()
         })

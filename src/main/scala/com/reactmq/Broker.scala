@@ -1,73 +1,58 @@
 package com.reactmq
 
+import akka.stream.scaladsl._
+import akka.util.ByteString
 import java.net.InetSocketAddress
-
-import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
 import akka.actor.{ ActorSystem, Props }
-import akka.io.IO
-import akka.stream.io.StreamTcp
-import akka.pattern.ask
-import akka.stream.scaladsl.{ BlackholeSink, ForeachSink, Source, Sink }
+import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
 import com.reactmq.queue.{ DurableQueue, MessageData, DeleteMessage }
-import Framing._
 
-class Broker(sendServerAddress: InetSocketAddress, receiveServerAddress: InetSocketAddress)(implicit val system: ActorSystem)
+import scala.concurrent.{ Future, Promise }
+
+class Broker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocketAddress)(implicit val system: ActorSystem)
     extends ReactiveStreamsSupport {
 
-  def run(): Unit = {
-    val ioExt = IO(StreamTcp)
-    val bindSendFuture = ioExt ? StreamTcp.Bind(sendServerAddress)
-    val bindReceiveFuture = ioExt ? StreamTcp.Bind(receiveServerAddress)
+  override def run(): Future[Unit] = {
+    val compile = Promise[Unit]
+    val queue = system.actorOf(DurableQueue.props, name = "queue")
+    system.log.info("Binding: [Publishers] {} - [Subscribers] {}", publishersAddress, subscribersAddress)
 
-    val queueActor = system.actorOf(DurableQueue.props, name = "queue")
+    val pubs = StreamTcp().bind(publishersAddress)
+    val subs = StreamTcp().bind(subscribersAddress)
 
-    system.log.info("Binding: Senders address {} Receivers address {}", sendServerAddress, receiveServerAddress)
+    val bindPublisherFuture = pubs runForeach { conn ⇒
+      system.log.info("New Publishers from: {}", conn.remoteAddress)
+      val reconcileFrames = new ReconcileFrames()
+      val socketSubscriberQueuePublisher = ActorSubscriber[String](system.actorOf(
+        Props(new QueuePublisher(queue, conn.remoteAddress))))
 
-    bindSendFuture.onSuccess {
-      case serverBinding: StreamTcp.TcpServerBinding ⇒
-        system.log.info("Broker: send bound")
+      val deserializeFlow = Flow[ByteString].mapConcat(reconcileFrames.apply)
 
-        Source(serverBinding.connectionStream).runWith(ForeachSink[StreamTcp.IncomingTcpConnection] { conn ⇒
-          system.log.info(s"Broker: cluster-sender connected (${conn.remoteAddress})")
-          val sendToQueueSubscriber = ActorSubscriber[String](system.actorOf(Props(new SendToQueueSubscriber(queueActor))))
-
-          // sending messages to the queue, receiving from the client
-          val reconcileFrames = new ReconcileFrames()
-          Source(conn.inputStream)
-            .mapConcat(reconcileFrames.apply)
-            .runWith(Sink(sendToQueueSubscriber))
-        })
+      conn.flow.via(deserializeFlow)
+        .to(Sink(socketSubscriberQueuePublisher))
+        .runWith(Source.subscriber)
     }
 
-    bindReceiveFuture.onSuccess {
-      case serverBinding: StreamTcp.TcpServerBinding ⇒
-        system.log.info("Broker: receive bound")
+    val bindSubsFuture = subs runForeach { con ⇒
+      system.log.info(s"New Subscriber from: {} ${con.remoteAddress}")
+      val reconcileFrames = new ReconcileFrames()
 
-        Source(serverBinding.connectionStream).runWith(ForeachSink[StreamTcp.IncomingTcpConnection] { conn ⇒
-          system.log.info(s"Broker: cluster-receive client connected (${conn.remoteAddress})")
+      val socketPublisherQueueSubscriber = ActorPublisher[MessageData](system.actorOf(
+        Props(new QueueSubscriber(queue, con.remoteAddress))))
 
-          val receiveFromQueuePublisher = ActorPublisher[MessageData](system.actorOf(Props(new ReceiveFromQueuePublisher(queueActor))))
+      val source = Source[MessageData](socketPublisherQueueSubscriber)
+        .map(m ⇒ Framing.createFrame(m.encodeAsString))
 
-          // receiving messages from the queue, sending to the client
-          Source(receiveFromQueuePublisher)
-            .map(_.encodeAsString)
-            .map(createFrame)
-            .runWith(Sink(conn.outputStream))
+      val confirmSink = Flow[ByteString].mapConcat(reconcileFrames.apply).map { m ⇒
+        system.log.info("Confirm delivery for {}", m)
+        queue ! DeleteMessage(m)
+      }.to(Sink.ignore)
 
-          // replies: ids of messages to delete
-          val reconcileFrames = new ReconcileFrames()
-          Source(conn.inputStream)
-            .mapConcat(reconcileFrames.apply)
-            .map(queueActor ! DeleteMessage(_))
-            .runWith(BlackholeSink)
-        })
+      con.flow.runWith(source, confirmSink)
     }
 
-    handleIOFailure(bindSendFuture, "Broker: failed to bind send endpoint")
-    handleIOFailure(bindReceiveFuture, "Broker: failed to bind receive endpoint")
+    handleIOFailure(bindPublisherFuture, "Broker: failed to bind publisher endpoint", Some(compile))
+    handleIOFailure(bindSubsFuture, "Broker: failed to bind subs endpoint", Some(compile))
+    compile.future
   }
-}
-
-object SimpleBroker extends App with LocalServerSupport {
-  new Broker(sendServerAddress, receiveServerAddress).run()
 }

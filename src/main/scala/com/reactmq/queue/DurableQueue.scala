@@ -1,18 +1,17 @@
 package com.reactmq.queue
 
-import akka.actor.{ ActorLogging, Props }
 import akka.persistence._
 import com.reactmq.util.NowProvider
+import akka.actor.{ ActorLogging, Props }
 
 object DurableQueue {
-
   def props = Props(new DurableQueue)
 }
 
 class DurableQueue extends PersistentActor with ActorLogging
     with DurableQueueStorage
-    with DurableDurableQueueReceive
-    with DurableQueueRecover {
+    with DurableQueueRecover
+    with DurableDurableQueueReceive {
 
   override def nowProvider = new NowProvider()
 

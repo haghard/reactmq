@@ -1,9 +1,7 @@
 package com.reactmq.queue
 
 case class MessageData(id: String, content: String) {
-  def encodeAsString = {
-    s"$id,$content"
-  }
+  def encodeAsString = s"$id,$content"
 }
 
 object MessageData {

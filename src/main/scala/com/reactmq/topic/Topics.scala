@@ -21,17 +21,16 @@ object Topics {
         "lang" -> JsString(tweet.user.map(_.lang).getOrElse("none"))),
       "body" -> JsString(tweet.text),
       "createdAt" -> JsString(tweet.createdAt),
-      "topic" -> JsString(tweet.topic.getOrElse("none")))
-      .prettyPrint
+      "topic" -> JsString(tweet.topic.getOrElse("none"))).prettyPrint
   }
 
   case class MessageAdded(id: String, nextDelivery: Long, t: Tweet) extends TopicEvent
   case class MessageNextDeliveryUpdated(id: String, nextDelivery: Long) extends TopicEvent
   case class MessageDeleted(id: String) extends TopicEvent
 
-  case class SendTopicMessage(t: Tweet)
+  case class SaveTopicMessage(t: Tweet)
   case class ReceiveTopicMessages(topic: String, count: Int)
-  case class DeleteTopicMessage(id: String)
+  case class ConfirmTopicMessage(id: String)
 
   // replies
   case class SentTopicMessage(id: String)

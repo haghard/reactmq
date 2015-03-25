@@ -7,7 +7,9 @@ import com.reactmq.topic.Topics._
 import scala.collection.mutable.HashMap
 
 trait TopicReceive extends TopicsOps {
-  self: PersistentActor with TopicsStorage with ActorLogging { def twitterTeams: Map[String, String] } ⇒
+  self: PersistentActor with TopicsStorage with ActorLogging ⇒
+
+  def twitterTeams: Map[String, String]
 
   type ReceiverRequest = (ActorRef, Int)
 
@@ -17,7 +19,7 @@ trait TopicReceive extends TopicsOps {
     }
 
   protected def handleCommands: Receive = {
-    case SendTopicMessage(t) ⇒
+    case SaveTopicMessage(t) ⇒
       val msg = updateMemory(t)
       persistAsync(msg.toMessageAdded) { msgAdded ⇒
         sender() ! SentTopicMessage(msgAdded.id)
@@ -29,7 +31,7 @@ trait TopicReceive extends TopicsOps {
       addAwaitingActor(topic, sender(), count)
       tryReply()
 
-    case DeleteTopicMessage(id) ⇒
+    case ConfirmTopicMessage(id) ⇒
       deleteMessage(id)
       persistAsync(MessageDeleted(id)) { _ ⇒ }
 

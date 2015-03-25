@@ -1,5 +1,7 @@
 package com.reactmq.topic
 
+import java.util.UUID
+
 import com.reactmq.topic.Topics.{ MessageNextDeliveryUpdated, MessageAdded, MessageData }
 import com.reactmq.util.NowProvider
 
@@ -11,9 +13,10 @@ trait TopicsStorage {
   def nowProvider: NowProvider
 
   //internal state
-  protected var messageQueues = teams.foldLeft(mutable.Map[String, mutable.PriorityQueue[InternalMessage]]()) { (acc, c) ⇒
-    acc += c -> mutable.PriorityQueue[InternalMessage]()
-  }
+  protected var messageQueues = teams
+    .foldLeft(mutable.Map[String, mutable.PriorityQueue[InternalMessage]]()) { (acc, c) ⇒
+      acc += c -> mutable.PriorityQueue[InternalMessage]()
+    }
 
   protected val messagesById = mutable.HashMap[String, InternalMessage]()
 
@@ -29,6 +32,6 @@ trait TopicsStorage {
   }
 
   object InternalMessage {
-    def from(t: Tweet) = InternalMessage(t.id, nowProvider.nowMillis, t)
+    def from(t: Tweet) = InternalMessage(UUID.randomUUID().toString, nowProvider.nowMillis, t)
   }
 }
