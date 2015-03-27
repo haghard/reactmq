@@ -7,7 +7,7 @@ import scala.concurrent.{ Promise, Future }
 import akka.actor.{ Props, ActorSystem }
 import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
 import akka.stream.scaladsl.{ Source, Sink, Flow, StreamTcp }
-import com.reactmq.{ TDestination, ReconcileFrames, ReactiveStreamsSupport }
+import com.reactmq.{ TopicDestinationProcess, ReconcileFrames, ReactiveStreamsSupport }
 import akka.stream.{ ActorFlowMaterializer, ActorFlowMaterializerSettings }
 
 object ClusterTopicsSubscriber extends App with ClusterClientSupport {
@@ -22,7 +22,7 @@ final class TopicsSubscriber(receiveServerAddress: InetSocketAddress)(implicit v
     val completion = Promise[Unit]()
     val connection = StreamTcp().outgoingConnection(receiveServerAddress)
 
-    val ps = system.actorOf(Props(new TDestination(completion)))
+    val ps = system.actorOf(Props(new TopicDestinationProcess(completion)))
     val s = ActorSubscriber[Tweet](ps)
     val p = ActorPublisher[ByteString](ps)
 

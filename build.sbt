@@ -31,6 +31,7 @@ resolvers += "Sonatype Snapshots Repo"  at "https://oss.sonatype.org/content/gro
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 resolvers += "Local Maven Repository" at "file:///" + localMvnRepo
 resolvers += "Local Ivy Repository" at "file:///" + ivy
+//resolvers += "krasserm at bintray"  at "http://dl.bintray.com/krasserm/maven"
 
 scalacOptions in Compile ++= Seq(
   "-feature",
@@ -56,9 +57,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"   %% "akka-cluster"                   % akkaVersion,
   "com.typesafe.akka"   %% "akka-contrib"                   % akkaVersion,
   "com.typesafe.akka"   %% "akka-stream-experimental"       % "1.0-M4",
-  "com.github.ironfish" %% "akka-persistence-mongo-casbah" % "0.7.6" withSources(),
-  "com.typesafe.akka"   %%  "akka-slf4j"                    % akkaVersion,
-  "io.spray"            %%  "spray-json"                    % "1.2.6",
+  "com.github.ironfish" %% "akka-persistence-mongo-casbah"  % "0.7.6" withSources(),
+  //"com.github.krasserm" %% "streamz-akka-persistence"       % "0.2" withSources() intransitive(),
+  "com.typesafe.akka"   %% "akka-slf4j"                     % akkaVersion,
+  "io.spray"            %% "spray-json"                     % "1.2.6",
 
   // util
   "org.scalatest" %% "scalatest" % "2.2.2" % "test",

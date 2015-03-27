@@ -18,7 +18,7 @@ class Subscriber0(receiveServerAddress: InetSocketAddress)(implicit val system: 
     val completion = Promise[Unit]()
     val connection = StreamTcp().outgoingConnection(receiveServerAddress)
 
-    val ps = system.actorOf(Props(new Destination(completion)))
+    val ps = system.actorOf(Props(new DestinationProcessor(completion)))
     val s = ActorSubscriber[MessageData](ps)
     val p = ActorPublisher[ByteString](ps)
 

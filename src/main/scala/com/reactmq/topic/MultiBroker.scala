@@ -43,6 +43,8 @@ class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: Inet
       system.log.info("New publishers from: {}", con.remoteAddress)
       val src = Source(ActorPublisher[ByteString](system.actorOf(TopicsReader.props("cle", topics))))
 
+      //streamz.akka.persistence.journaler("")
+
       val reconcileFrames = new ReconcileFrames()
       val confirmSink = Flow[ByteString].mapConcat(reconcileFrames.apply).map { m ⇒
         system.log.info("Confirm delivery for {}", m)
