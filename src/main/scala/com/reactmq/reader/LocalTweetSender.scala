@@ -36,7 +36,7 @@ class TweetPublisher(publisherAddress: InetSocketAddress)(implicit val system: A
     val srcGen = Source(1.seconds, 50.millis, () ⇒ {
       idx += 1;
       Tweet(idx.toString, "tweet body", Some(User(id = publisherName)),
-        Some("cle" /*topics(ThreadLocalRandom.current.nextInt(topics.size))*/ ))
+        Some(topics(ThreadLocalRandom.current.nextInt(topics.size))))
     }).map { gen ⇒
       val t = gen()
       system.log.info(s"publish: $t")

@@ -17,7 +17,7 @@ import scala.util.Failure
  * @param completion
  */
 final class TopicDestinationProcess(completion: Promise[Unit]) extends ActorSubscriber with ActorPublisher[ByteString]
-  with ActorLogging {
+    with ActorLogging {
 
   private val queue = mutable.Queue[ByteString]()
 
@@ -38,7 +38,7 @@ final class TopicDestinationProcess(completion: Promise[Unit]) extends ActorSubs
 
     case OnError(ex) ⇒
       onError(ex)
-      log.info("OnError")
+      log.info("OnError {}", ex.getMessage)
       reconnect()
 
     case Request(n) ⇒
@@ -58,7 +58,7 @@ final class TopicDestinationProcess(completion: Promise[Unit]) extends ActorSubs
   private def tryReply() = {
     if ((isActive && totalDemand > 0) && !queue.isEmpty) {
       val m = queue.dequeue()
-      log.info("Confirm - {}", m)
+      //log.info("Confirm - {}", m)
       onNext(m)
     }
   }

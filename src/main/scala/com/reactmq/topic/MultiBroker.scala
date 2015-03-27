@@ -41,9 +41,14 @@ class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: Inet
 
     val subsFuture = subs runForeach { con ⇒
       system.log.info("New publishers from: {}", con.remoteAddress)
-      val src = Source(ActorPublisher[ByteString](system.actorOf(TopicsReader.props("cle", topics))))
 
-      //streamz.akka.persistence.journaler("")
+      val sourceN = Source() { implicit b: FlowGraph.Builder ⇒
+        import FlowGraph.Implicits._
+        val merge = b.add(Merge[ByteString](2))
+        tops.foreach(t ⇒ Source(ActorPublisher[ByteString](system.actorOf(TopicsReader.props(t, topics)))) ~> merge)
+
+        merge.out
+      }
 
       val reconcileFrames = new ReconcileFrames()
       val confirmSink = Flow[ByteString].mapConcat(reconcileFrames.apply).map { m ⇒
@@ -51,7 +56,7 @@ class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: Inet
         topics ! ConfirmTopicMessage(m)
       }.to(Sink.ignore)
 
-      con.flow.runWith(src, confirmSink)
+      con.flow.runWith(sourceN, confirmSink)
     }
 
     handleIOFailure(pubsFuture, "Some network error", Some(promise))
