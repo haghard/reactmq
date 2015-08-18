@@ -33,7 +33,7 @@ class TweetPublisher(publisherAddress: InetSocketAddress)(implicit val system: A
 
     val con = StreamTcp().outgoingConnection(publisherAddress)
 
-    val srcGen = Source(1.seconds, 50.millis, () ⇒ {
+    val srcGen = Source(1.seconds, 1.second, () ⇒ {
       idx += 1;
       Tweet(idx.toString, "tweet body", Some(User(id = publisherName)),
         Some(topics(ThreadLocalRandom.current.nextInt(topics.size))))
