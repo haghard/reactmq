@@ -31,7 +31,6 @@ resolvers += "Sonatype Snapshots Repo"  at "https://oss.sonatype.org/content/gro
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 resolvers += "Local Maven Repository" at "file:///" + localMvnRepo
 resolvers += "Local Ivy Repository" at "file:///" + ivy
-//resolvers += "krasserm at bintray"  at "http://dl.bintray.com/krasserm/maven"
 
 scalacOptions in Compile ++= Seq(
   "-feature",
@@ -59,10 +58,10 @@ libraryDependencies ++= Seq(
   "com.github.ironfish" %% "akka-persistence-mongo-casbah"  % "0.7.6" withSources(),
   "com.typesafe.akka"   %% "akka-slf4j"                     % akkaVersion,
   "io.spray"            %% "spray-json"                     % "1.2.6",
-  // util
-  "org.scalatest" %% "scalatest" % "2.2.2" % "test",
-  "joda-time" % "joda-time" % "2.5",
-  "org.joda" % "joda-convert" % "1.7"
+  "org.scalaz"          %% "scalaz-core"                    % "7.1.0",
+  "org.scalatest"       %% "scalatest" % "2.2.2" % "test",
+  "joda-time"           %   "joda-time" % "2.5",
+  "org.joda"            %  "joda-convert" % "1.7"
 )
 
 libraryDependencies ++= Seq(
@@ -74,3 +73,5 @@ libraryDependencies ++= Seq(
 publishMavenStyle := true
 publishTo := Some(Resolver.file("file",  new File(localMvnRepo)))
 ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
+
+addCommandAlias("cBroker1", "run-main com.reactmq.cluster.ClusteredTopicsBroker --AKKA_PORT=2551 --SEEDS=192.168.0.62:2551")

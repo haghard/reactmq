@@ -1,31 +1,30 @@
 package com.reactmq.topic
 
+import com.reactmq._
 import java.net.InetSocketAddress
 import akka.actor.ActorSystem
-import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import com.reactmq._
 import com.reactmq.topic.Topics.ConfirmTopicMessage
+import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
 
 import scala.concurrent.{ Future, Promise }
 
-class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocketAddress)(implicit val system: ActorSystem)
-    extends ReactiveStreamsSupport {
+class MultiTopicBroker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocketAddress)(implicit val system: ActorSystem) extends ReactiveStreamsSupport {
 
-  private val tops = List("cle", "ind")
-  private val topicsNames = Map("cle" -> "cavs", "ind" -> "Pacers")
+  private val topicNames = List("cle", "ind")
+  private val topicMapping = Map("cle" -> "cavs", "ind" -> "Pacers")
 
   override def run(): Future[Unit] = {
     val promise = Promise[Unit]
 
-    val pubs = Tcp().bind(publishersAddress.getHostName, publishersAddress.getPort)
-    val subs = Tcp().bind(subscribersAddress.getHostName, subscribersAddress.getPort)
-    val topics = system.actorOf(Topics.props(tops, topicsNames), name = "topics")
+    val in = Tcp().bind(publishersAddress.getHostString, publishersAddress.getPort)
+    val out = Tcp().bind(subscribersAddress.getHostString, subscribersAddress.getPort)
+    val topics = system.actorOf(Topics.props(topicNames, topicMapping), name = "topics")
 
     system.log.info("Binding: [Publishers] {} - [Subscribers] {}", publishersAddress, subscribersAddress)
 
-    val pubsFuture = pubs runForeach { con ⇒
+    val inFuture = in runForeach { con ⇒
       system.log.info("New Publishers from: {}", con.remoteAddress)
 
       val reconcileFrames = new ReconcileFrames()
@@ -39,13 +38,15 @@ class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: Inet
         .runWith(Source.subscriber)
     }
 
-    val subsFuture = subs runForeach { con ⇒
+    val outFuture = out runForeach { con ⇒
       system.log.info("New publishers from: {}", con.remoteAddress)
 
       val sourceN = Source() { implicit b ⇒
         import FlowGraph.Implicits._
-        val merge = b.add(Merge[ByteString](2))
-        tops.foreach(t ⇒ Source(ActorPublisher[ByteString](system.actorOf(TopicsReader.props(t, topics)))) ~> merge)
+        val merge = b.add(Merge[ByteString](topicNames.size))
+        topicNames.foreach { t ⇒
+          Source(ActorPublisher[ByteString](system.actorOf(TopicsReader.props(t, topics)))) ~> merge
+        }
         merge.out
       }
 
@@ -58,8 +59,8 @@ class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: Inet
       con.flow.runWith(sourceN, confirmSink)
     }
 
-    handleIOFailure(pubsFuture, "Some network error", Some(promise))
-    handleIOFailure(subsFuture, "Some network error", Some(promise))
+    handleIOFailure(inFuture, "In network error", Some(promise))
+    handleIOFailure(outFuture, "Out network error", Some(promise))
     promise.future
   }
 }

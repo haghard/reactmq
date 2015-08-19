@@ -27,7 +27,7 @@ trait ClusterClientSupport {
     val clusterClient = system.actorOf(ClusterClient.props(initialContacts), "cluster-client")
 
     def go(): Unit = {
-      val completionFuture = (clusterClient ? ClusterClient.Send("/user/broker-manager/broker", GetBrokerAddresses, localAffinity = false))
+      val completionFuture = (clusterClient ? ClusterClient.Send("/user/broker-guard/broker", GetBrokerAddresses, localAffinity = false))
         .mapTo[BrokerAddresses]
         .flatMap { ba ⇒
           system.log.info(s"Connecting a $name using broker address $ba.")
