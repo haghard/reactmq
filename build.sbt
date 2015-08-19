@@ -74,4 +74,5 @@ publishMavenStyle := true
 publishTo := Some(Resolver.file("file",  new File(localMvnRepo)))
 ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
 
-addCommandAlias("cBroker1", "run-main com.reactmq.cluster.ClusteredTopicsBroker --AKKA_PORT=2551 --SEEDS=192.168.0.62:2551")
+addCommandAlias("cBroker1", "run-main com.reactmq.cluster.ClusteredTopicsBroker --AKKA_PORT=2551 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
+addCommandAlias("cBroker2", "run-main com.reactmq.cluster.ClusteredTopicsBroker --AKKA_PORT=2552 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")

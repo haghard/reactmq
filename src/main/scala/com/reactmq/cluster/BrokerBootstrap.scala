@@ -23,6 +23,7 @@ class BrokerBootstrap(akkaPort: Int, seeds: String, hostName: String, t: Brokers
         |    roles = [ $ClusterRole ]
         |  }
       """.stripMargin))
+      .withFallback(ConfigFactory.parseString(s"""akka.cluster.role { $ClusterRole.min-nr-of-members = 2 }"""))
 
     val conf = ConfigFactory.empty().withFallback(clusterCfg)
       .withFallback(ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$akkaPort"))
