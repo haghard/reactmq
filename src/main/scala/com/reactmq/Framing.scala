@@ -67,7 +67,7 @@ object Framing {
 }
 
 @NotThreadSafe
-class ReconcileFrames() {
+class Framers() {
   import Framing.SizeBytes
 
   private var buffer = ByteString()

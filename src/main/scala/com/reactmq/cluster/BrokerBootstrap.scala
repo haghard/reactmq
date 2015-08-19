@@ -12,7 +12,7 @@ object Brokers extends Enumeration {
   val Single, Multi = Value
 }
 
-class BrokerBootstrap(akkaPort: Int, seeds: String, hostName: String, t: Brokers.BType, systemName: String) {
+class BrokerBootstrap(akkaPort: Int, seeds: String, hostName: String, topics: List[String], t: Brokers.BType, systemName: String) {
   val ClusterRole = "brokers"
   def runAkka() = {
     val clusterCfg = ConfigFactory.empty()
@@ -39,7 +39,7 @@ class BrokerBootstrap(akkaPort: Int, seeds: String, hostName: String, t: Brokers
     val message = new StringBuilder().append('\n')
       .append("=====================================================================================================================================")
       .append('\n')
-      .append(s"★ ★ ★ ★ ★ ★  Cluster role: $ClusterRole - Akka-System: $hostName:$akkaPort  ★ ★ ★ ★ ★ ★")
+      .append(s"★ ★ ★ ★ ★ ★  $ClusterRole with topics: $topics - Akka-System: $hostName:$akkaPort  ★ ★ ★ ★ ★ ★")
       .append('\n')
       .append(s"★ ★ ★ ★ ★ ★  Akka cluster seed nodes: ${system.settings.config.getStringList("akka.cluster.seed-nodes")}  ★ ★ ★ ★ ★ ★")
       .append('\n')
@@ -51,7 +51,8 @@ class BrokerBootstrap(akkaPort: Int, seeds: String, hostName: String, t: Brokers
     system.log.info(message)
 
     system.actorOf(ClusterSingletonManager.props(
-      singletonProps = Props(new BrokerGuard(new InetSocketAddress(hostName, inPort), new InetSocketAddress(hostName, outPort), t)),
+      singletonProps = Props(new BrokerGuard(new InetSocketAddress(hostName, inPort), new InetSocketAddress(hostName, outPort),
+        topics, t)),
       singletonName = "broker",
       terminationMessage = PoisonPill,
       role = Some(ClusterRole)),
@@ -59,37 +60,46 @@ class BrokerBootstrap(akkaPort: Int, seeds: String, hostName: String, t: Brokers
   }
 }
 
-class BrokerGuard(in: InetSocketAddress, out: InetSocketAddress, t: Brokers.BType) extends Actor with ActorLogging {
+class BrokerGuard(in: InetSocketAddress, out: InetSocketAddress, topics: List[String], bType: Brokers.BType) extends Actor with ActorLogging {
   override def preStart() = {
-    t match {
+    bType match {
       case Brokers.Single ⇒ new Broker(in, out)(context.system).run()
-      case Brokers.Multi  ⇒ new MultiTopicBroker(in, out)(context.system).run()
+      case Brokers.Multi  ⇒ new MultiTopicBroker(in, out, topics)(context.system).run()
     }
 
     ClusterReceptionistExtension(context.system).registerService(self)
   }
 
   override def receive = {
+    case Terminated(a) ⇒
+      log.info("Actor  Terminated {}", a)
     case GetBrokerAddresses ⇒
       log.info("GetBrokerAddresses from {}", sender())
       sender() ! BrokerAddresses(in, out)
+      context.watch(sender())
   }
 }
 
 case object GetBrokerAddresses
 case class BrokerAddresses(publishersAddress: InetSocketAddress, subscribersAddress: InetSocketAddress)
 
-object ClusteredTopicsBroker extends App with SeedNodeSupport with SystemPropsSupport {
+trait BrokerSeedsSupport extends SeedNodeSupport {
+  override def formatter: List[String] ⇒ String =
+    seeds ⇒
+      seeds.map { node ⇒
+        val v = node.split(":")
+        s"""akka.cluster.seed-nodes += "akka.tcp://$ActorSystemName@${v(0)}:${v(1)}""""
+      }.mkString("\n")
+}
 
+object ClusteredTopicsBroker extends App with BrokerSeedsSupport with SystemPropsSupport {
   override val eth = "en0"
-
-  override val ActorSystemName = "Broker"
 
   if (!args.isEmpty)
     applySystemProperties(args)
 
-  validateBroker(System.getProperty(AKKA_PORT), System.getProperty(SEEDS))
+  validateAll(System.getProperty(AKKA_PORT_VAR), System.getProperty(SEEDS_VAR), System.getProperty(TOPIC_VAR))
     .fold(errors ⇒ throw new Exception(errors.toString()), { v ⇒
-      new BrokerBootstrap(v._1, v._2, v._3, Brokers.Multi, ActorSystemName).runAkka()
+      new BrokerBootstrap(v._1, v._2, v._3, v._4.toList, Brokers.Multi, ActorSystemName).runAkka()
     })
 }

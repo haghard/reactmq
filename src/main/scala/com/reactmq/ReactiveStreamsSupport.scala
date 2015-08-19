@@ -13,7 +13,7 @@ trait ReactiveStreamsSupport {
 
   implicit val timeout = Timeout(5.seconds)
 
-  implicit val materializer = ActorMaterializer()
+  def materializer = ActorMaterializer()
 
   def run(): Future[Unit]
 

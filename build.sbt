@@ -26,7 +26,6 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
 
-
 resolvers += "Sonatype Snapshots Repo"  at "https://oss.sonatype.org/content/groups/public"
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 resolvers += "Local Maven Repository" at "file:///" + localMvnRepo
@@ -74,5 +73,10 @@ publishMavenStyle := true
 publishTo := Some(Resolver.file("file",  new File(localMvnRepo)))
 ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
 
-addCommandAlias("cBroker1", "run-main com.reactmq.cluster.ClusteredTopicsBroker --AKKA_PORT=2551 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
-addCommandAlias("cBroker2", "run-main com.reactmq.cluster.ClusteredTopicsBroker --AKKA_PORT=2552 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
+addCommandAlias("broker1", "run-main com.reactmq.cluster.ClusteredTopicsBroker --TOPIC=hou,okc,mia,cle --AKKA_PORT=2551 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
+addCommandAlias("broker2", "run-main com.reactmq.cluster.ClusteredTopicsBroker --TOPIC=hou,okc,mia,cle --AKKA_PORT=2552 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
+
+addCommandAlias("pub", "run-main com.reactmq.reader.ClusterTopicsPublisher --TOPIC=hou,okc,mia --AKKA_PORT=2554 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
+
+//all
+addCommandAlias("sub", "run-main com.reactmq.cluster.ClusterTopicsSubscriber --AKKA_PORT=2556 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")

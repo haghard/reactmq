@@ -9,19 +9,19 @@ trait TopicsRecover {
 
   def handleRecover: Receive = {
     case MessageAdded(id, nextDelivery, tweet) ⇒
-      messagesById += (id -> InternalMessage(id, nextDelivery, tweet))
+      undeliveredId += (id -> InternalMessage(id, nextDelivery, tweet))
     case MessageNextDeliveryUpdated(id, nextDelivery) ⇒
-      messagesById.get(id).foreach(_.nextDelivery = nextDelivery)
+      undeliveredId.get(id).foreach(_.nextDelivery = nextDelivery)
     case MessageDeleted(id) ⇒
-      messagesById -= id
+      undeliveredId -= id
 
     case RecoveryCompleted ⇒
-      messagesById.values.foreach { internalMessage ⇒
+      undeliveredId.values.foreach { internalMessage ⇒
         for {
           topic ← internalMessage.t.topic
-        } yield { messageQueues(topic) += internalMessage }
+        } yield { undeliveredTopics(topic) += internalMessage }
       }
-      log.info(s"Undelivered messages size: {}", messagesById.size)
+      log.info(s"Undelivered messages size: {}", undeliveredId.size)
 
     case PersistenceFailure(payload, seqNum, cause) ⇒
       log.info("Journal fails to write a event: {}", cause.getMessage)

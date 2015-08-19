@@ -1,5 +1,6 @@
 package com.reactmq.topic
 
+import akka.stream.{ Supervision, ActorMaterializer, ActorMaterializerSettings }
 import com.reactmq._
 import java.net.InetSocketAddress
 import akka.actor.ActorSystem
@@ -10,54 +11,60 @@ import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
 
 import scala.concurrent.{ Future, Promise }
 
-class MultiTopicBroker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocketAddress)(implicit val system: ActorSystem) extends ReactiveStreamsSupport {
+class MultiTopicBroker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocketAddress,
+                       topicNames: List[String])(implicit val system: ActorSystem) extends ReactiveStreamsSupport {
 
-  private val topicNames = List("cle", "ind")
-  private val topicMapping = Map("cle" -> "cavs", "ind" -> "Pacers")
+  val topicTwitterMapping = topicNames.foldLeft(Map[String, String]())((acc, c) ⇒ acc + (c -> c))
+
+  override val materializer = ActorMaterializer(
+    ActorMaterializerSettings(system)
+      .withInputBuffer(initialSize = 4, maxSize = 16)
+      .withDispatcher("akka.topics-dispatcher"))
 
   override def run(): Future[Unit] = {
     val promise = Promise[Unit]
 
     val in = Tcp().bind(publishersAddress.getHostString, publishersAddress.getPort)
     val out = Tcp().bind(subscribersAddress.getHostString, subscribersAddress.getPort)
-    val topics = system.actorOf(Topics.props(topicNames, topicMapping), name = "topics")
+    val topics = system.actorOf(Topics.props(topicNames, topicTwitterMapping), name = "topics")
 
     system.log.info("Binding: [Publishers] {} - [Subscribers] {}", publishersAddress, subscribersAddress)
 
-    val inFuture = in runForeach { con ⇒
-      system.log.info("New Publishers from: {}", con.remoteAddress)
+    val inFuture = in.runForeach({ con ⇒
+      system.log.info("New topics writer from: {}", con.remoteAddress)
 
-      val reconcileFrames = new ReconcileFrames()
-      val socketSubscriberTopicsPublisher = ActorSubscriber[Tweet](
-        system.actorOf(MultiTopicWriter.props(topics, con.remoteAddress)))
+      val framer = new Framers()
+      val inNetworkSubscriber = ActorSubscriber[Tweet](
+        system.actorOf(TopicsWriter.props(topics, con.remoteAddress)))
 
-      val deserializeFlow = Flow[ByteString].mapConcat(reconcileFrames.apply2)
+      val deserializer = Flow[ByteString]
+        .mapConcat(framer.apply2)
 
-      con.flow.via(deserializeFlow)
-        .to(Sink(socketSubscriberTopicsPublisher))
-        .runWith(Source.subscriber)
-    }
+      con.flow.via(deserializer)
+        .to(Sink(inNetworkSubscriber))
+        .runWith(Source.subscriber)(materializer)
+    })(materializer)
 
-    val outFuture = out runForeach { con ⇒
-      system.log.info("New publishers from: {}", con.remoteAddress)
+    val outFuture = out.runForeach({ con ⇒
+      system.log.info("New topic reader from: {}", con.remoteAddress)
 
       val sourceN = Source() { implicit b ⇒
         import FlowGraph.Implicits._
         val merge = b.add(Merge[ByteString](topicNames.size))
-        topicNames.foreach { t ⇒
-          Source(ActorPublisher[ByteString](system.actorOf(TopicsReader.props(t, topics)))) ~> merge
+        topicNames.foreach { name ⇒
+          Source(ActorPublisher[ByteString](system.actorOf(TopicReader.props(name, topics)))) ~> merge
         }
         merge.out
       }
 
-      val reconcileFrames = new ReconcileFrames()
-      val confirmSink = Flow[ByteString].mapConcat(reconcileFrames.apply).map { m ⇒
+      val framer = new Framers()
+      val confirmSink = Flow[ByteString].mapConcat(framer.apply).map { m ⇒
         system.log.info("Confirm delivery for {}", m)
         topics ! ConfirmTopicMessage(m)
       }.to(Sink.ignore)
 
-      con.flow.runWith(sourceN, confirmSink)
-    }
+      con.flow.runWith(sourceN, confirmSink)(materializer)
+    })(materializer)
 
     handleIOFailure(inFuture, "In network error", Some(promise))
     handleIOFailure(outFuture, "Out network error", Some(promise))

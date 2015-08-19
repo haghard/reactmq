@@ -14,32 +14,35 @@ import scala.util.Failure
 /**
  * Processor implementation inspired by
  * http://bryangilbert.com/blog/2015/02/04/akka-reactive-streams/index.html
- * @param completion
+ *
  */
-final class TopicDestinationProcess(completion: Promise[Unit]) extends ActorSubscriber with ActorPublisher[ByteString]
+class ConfirmationProcessor(completion: Promise[Unit]) extends ActorSubscriber
+    with ActorPublisher[ByteString]
     with ActorLogging {
 
-  private val queue = mutable.Queue[ByteString]()
+  //store all unpublished confirmation ids
+  val queue = mutable.Queue[ByteString]()
 
   override val requestStrategy = new MaxInFlightRequestStrategy(10) {
-    override def inFlightInternally() = queue.size
+    override val inFlightInternally = queue.size
   }
 
   override def receive: Receive = {
     case OnNext(t: Tweet) ⇒
-      log.info("Delivered tweet - {}", t)
+      Thread.sleep(500)
+      log.info("Delivered tweet: {}", t)
       queue += Framing.createFrame(t.id)
       tryReply
 
     case OnComplete ⇒
       onComplete()
-      log.info("OnComplete")
-      reconnect()
+      log.info("Broker was completed")
+      reconnectBroker
 
     case OnError(ex) ⇒
       onError(ex)
       log.info("OnError {}", ex.getMessage)
-      reconnect()
+      reconnectBroker
 
     case Request(n) ⇒
       tryReply()
@@ -47,19 +50,17 @@ final class TopicDestinationProcess(completion: Promise[Unit]) extends ActorSubs
     case Cancel ⇒
       cancel()
       log.info("Cancel")
-      reconnect()
+      reconnectBroker
   }
 
-  private def reconnect() = {
-    context.stop(self)
+  def reconnectBroker = {
+    context stop self
     completion.complete(Failure(new Exception("Broker connection problem")))
   }
 
-  private def tryReply() = {
-    if ((isActive && totalDemand > 0) && !queue.isEmpty) {
-      val m = queue.dequeue()
-      //log.info("Confirm - {}", m)
-      onNext(m)
+  def tryReply() = {
+    while ((isActive && totalDemand > 0) && !queue.isEmpty) {
+      onNext(queue.dequeue())
     }
   }
 }

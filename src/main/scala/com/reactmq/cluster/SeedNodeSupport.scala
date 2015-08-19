@@ -6,12 +6,13 @@ import scalaz._
 import Scalaz._
 
 trait SeedNodeSupport {
-  val AKKA_PORT = "AKKA_PORT"
-  val SEEDS = "SEEDS"
+  val AKKA_PORT_VAR = "AKKA_PORT"
+  val SEEDS_VAR = "SEEDS"
+  val TOPIC_VAR = "TOPIC"
 
   val ipExpression = """\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}"""
 
-  def ActorSystemName: String
+  val ActorSystemName = "Broker"
 
   def eth: String
 
@@ -35,23 +36,34 @@ trait SeedNodeSupport {
     }
   }
 
-  def validateSeeds(seeds: String): ValidationNel[String, String] = {
+  def formatter: List[String] ⇒ String
+
+  def validateSeeds(seeds: String): ValidationNel[String, String] =
     if (seeds == null) "Seeds is empty".failureNel
-    else {
-      seeds.split(",").toList.map { node ⇒
-        val v = node.split(":")
-        s"""akka.cluster.seed-nodes += "akka.tcp://$ActorSystemName@${v(0)}:${v(1)}""""
-      }.mkString("\n").successNel
-    }
-  }
+    else
+      try formatter(seeds.split(",").toList).successNel
+      catch {
+        case e: Exception ⇒ e.getMessage.failureNel
+      }
 
   def validateHost: ValidationNel[String, InetAddress] = localAddresses match {
     case None    ⇒ s"Can't find network by $eth".failureNel
     case Some(a) ⇒ a.successNel
   }
 
-  def validateBroker(port: String, seeds: String): ValidationNel[String, (Int, String, String)] =
+  def validateTopics(topics: String): ValidationNel[String, Vector[String]] = {
+    if (topics == null) "Topics is empty".failureNel
+    else topics.split(",").toVector.successNel
+  }
+
+  def validate(port: String, seeds: String): ValidationNel[String, (Int, String, String)] =
     (validatePort(port) |@| validateSeeds(seeds) |@| validateHost) {
       case (p, s, a) ⇒ (p, s, a.getHostAddress)
     }
+
+  def validateAll(port: String, seeds: String, topics: String): ValidationNel[String, (Int, String, String, Vector[String])] = {
+    (validate(port, seeds) |@| validateTopics(topics)) {
+      case (vs, t) ⇒ (vs._1, vs._2, vs._3, t)
+    }
+  }
 }

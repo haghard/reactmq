@@ -6,11 +6,13 @@ import com.reactmq.topic.Topics.{ SaveTopicMessage, SentTopicMessage }
 import akka.stream.actor.{ ActorSubscriber, MaxInFlightRequestStrategy }
 import akka.stream.actor.ActorSubscriberMessage.{ OnComplete, OnError, OnNext }
 
-object MultiTopicWriter {
-  def props(topics: ActorRef, address: InetSocketAddress) = Props(new MultiTopicWriter(topics, address))
+object TopicsWriter {
+  def props(topics: ActorRef, address: InetSocketAddress) =
+    Props(new TopicsWriter(topics, address))
+      .withDispatcher("akka.topics-dispatcher")
 }
 
-class MultiTopicWriter(topics: ActorRef, address: InetSocketAddress) extends ActorSubscriber with ActorLogging {
+class TopicsWriter(topics: ActorRef, address: InetSocketAddress) extends ActorSubscriber with ActorLogging {
 
   private var inFlight = 0
 
@@ -23,14 +25,15 @@ class MultiTopicWriter(topics: ActorRef, address: InetSocketAddress) extends Act
       inFlight += 1
       topics ! SaveTopicMessage(t)
 
-    case SentTopicMessage(id) ⇒ inFlight -= 1
+    case SentTopicMessage(id) ⇒
+      inFlight -= 1
 
     case OnComplete ⇒
       log.info("Connection lost with publisher {}", address)
-      context.stop(self)
+      context stop self
 
     case OnError(ex) ⇒
       log.info("OnError {}", ex.getMessage)
-      context.stop(self)
+      context stop self
   }
 }

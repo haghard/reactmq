@@ -1,6 +1,6 @@
 package com.reactmq.topic
 
-import akka.actor.ActorLogging
+import akka.actor.{ ActorRef, ActorLogging }
 import com.reactmq.util.NowProvider
 
 import scala.annotation.tailrec
@@ -21,10 +21,10 @@ trait TopicsOps {
     val internalMessage = InternalMessage.from(t)
     for {
       t ← t.topic
-      q ← messageQueues.get(t)
+      q ← undeliveredTopics.get(t)
     } yield {
       q += internalMessage
-      messagesById(internalMessage.id) = internalMessage
+      undeliveredId(internalMessage.id) = internalMessage
       log.info("Incoming message for topic: {} message: {}", t, internalMessage)
     }
 
@@ -32,48 +32,44 @@ trait TopicsOps {
   }
 
   protected def receiveMessages(topic: String, count: Int): List[Received] = {
-
     val deliveryTime = nowProvider.nowMillis
-
-    @tailrec
-    def doReceiveMessages(topic: String, left: Int, acc: List[Received]): List[Received] = {
+    @tailrec def loop(topic: String, left: Int, acc: List[Received]): List[Received] = {
       if (left == 0) {
         acc
       } else {
-        receiveMessage(topic, deliveryTime, computeNextDelivery) match {
+        fetch(topic, deliveryTime, computeNextDelivery) match {
           case None      ⇒ acc
-          case Some(msg) ⇒ doReceiveMessages(topic, left - 1, msg :: acc)
+          case Some(msg) ⇒ loop(topic, left - 1, msg :: acc)
         }
       }
     }
-
-    doReceiveMessages(topic, count, Nil)
+    loop(topic, count, Nil)
   }
 
-  private def receiveMessage(topic: String, deliveryTime: Long, newNextDelivery: Long): Option[Received] =
-    messageQueues.get(topic).filter(_.size > 0)
+  private def fetch(topic: String, deliveryTime: Long, newNextDelivery: Long): Option[Received] =
+    undeliveredTopics.get(topic).filter(_.size > 0)
       .flatMap { q ⇒
         val internalMessage = q.dequeue()
         val id = internalMessage.id
         if (internalMessage.nextDelivery > deliveryTime) {
           q += internalMessage
           None
-        } else if (messagesById.contains(id)) {
+        } else if (undeliveredId.contains(id)) {
           internalMessage.nextDelivery = newNextDelivery
           q += internalMessage
 
-          log.info(s"Got message for topic {} message: {} ", topic, id)
+          log.info(s"Found message for topic {} message: {} ", topic, id)
           Some(internalMessage.toMessageData, internalMessage.toMessageNextDeliveryUpdated)
         } else {
-          receiveMessage(topic, deliveryTime, newNextDelivery)
+          fetch(topic, deliveryTime, newNextDelivery)
         }
       }
 
   private def computeNextDelivery = nowProvider.nowMillis + visibilityTimeout.toMillis
 
   protected def deleteMessage(id: String) {
-    messagesById.remove(id).fold(log.debug(s"Unknown message: $id")) {
-      _ ⇒ log.info(s"Deleted confirmed message $id")
+    undeliveredId.remove(id).fold(log.debug(s"Unknown message: $id")) {
+      _ ⇒ log.info(s"Delete confirmed message $id")
     }
   }
 }

@@ -22,7 +22,7 @@ class Subscriber0(receiveServerAddress: InetSocketAddress)(implicit val system: 
     val s = ActorSubscriber[MessageData](ps)
     val p = ActorPublisher[ByteString](ps)
 
-    val reconcileFrames = new ReconcileFrames()
+    val reconcileFrames = new Framers()
 
     val sink = Flow[ByteString].mapConcat(reconcileFrames.apply).map(MessageData.decodeFromString).to(Sink(s))
     val source = Source[ByteString](p)

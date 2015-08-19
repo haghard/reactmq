@@ -1,5 +1,6 @@
 package com.reactmq
 
+import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import java.net.InetSocketAddress
@@ -12,6 +13,8 @@ import scala.concurrent.{ Future, Promise }
 class Broker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocketAddress)(implicit val system: ActorSystem)
     extends ReactiveStreamsSupport {
 
+  override val materializer = ActorMaterializer()
+
   override def run(): Future[Unit] = {
     val compile = Promise[Unit]
     val queue = system.actorOf(DurableQueue.props, name = "queue")
@@ -20,9 +23,9 @@ class Broker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocke
     val pubs = Tcp().bind(publishersAddress.getHostName, publishersAddress.getPort)
     val subs = Tcp().bind(subscribersAddress.getHostName, subscribersAddress.getPort)
 
-    val bindPublisherFuture = pubs runForeach { conn ⇒
+    val bindPublisherFuture = pubs.runForeach({ conn ⇒
       system.log.info("New Publishers from: {}", conn.remoteAddress)
-      val reconcileFrames = new ReconcileFrames()
+      val reconcileFrames = new Framers()
       val socketSubscriberQueuePublisher = ActorSubscriber[String](system.actorOf(
         Props(new QueuePublisher(queue, conn.remoteAddress))))
 
@@ -30,12 +33,12 @@ class Broker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocke
 
       conn.flow.via(deserializeFlow)
         .to(Sink(socketSubscriberQueuePublisher))
-        .runWith(Source.subscriber)
-    }
+        .runWith(Source.subscriber)(materializer)
+    })(materializer)
 
-    val bindSubsFuture = subs runForeach { con ⇒
+    val bindSubsFuture = subs.runForeach({ con ⇒
       system.log.info(s"New Subscriber from: {} ${con.remoteAddress}")
-      val reconcileFrames = new ReconcileFrames()
+      val reconcileFrames = new Framers()
 
       val socketPublisherQueueSubscriber = ActorPublisher[MessageData](system.actorOf(
         Props(new QueueSubscriber(queue, con.remoteAddress))))
@@ -48,8 +51,8 @@ class Broker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocke
         queue ! DeleteMessage(m)
       }.to(Sink.ignore)
 
-      con.flow.runWith(source, confirmSink)
-    }
+      con.flow.runWith(source, confirmSink)(materializer)
+    })(materializer)
 
     handleIOFailure(bindPublisherFuture, "Broker: failed to bind publisher endpoint", Some(compile))
     handleIOFailure(bindSubsFuture, "Broker: failed to bind subs endpoint", Some(compile))

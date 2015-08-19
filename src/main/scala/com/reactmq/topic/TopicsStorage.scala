@@ -12,13 +12,12 @@ trait TopicsStorage {
 
   def nowProvider: NowProvider
 
-  //internal state
-  protected var messageQueues = teams
+  protected val undeliveredTopics = teams
     .foldLeft(mutable.Map[String, mutable.PriorityQueue[InternalMessage]]()) { (acc, c) ⇒
       acc += c -> mutable.PriorityQueue[InternalMessage]()
     }
 
-  protected val messagesById = mutable.HashMap[String, InternalMessage]()
+  protected val undeliveredId = mutable.HashMap[String, InternalMessage]()
 
   case class InternalMessage(id: String, var nextDelivery: Long, t: Tweet) extends Comparable[InternalMessage] {
 

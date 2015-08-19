@@ -36,7 +36,9 @@ object Topics {
   case class SentTopicMessage(id: String)
   case class ReceivedTopicMessages(msg: List[MessageData])
 
-  def props(teams: List[String], twitterTeams: Map[String, String]) = Props(new Topics(teams, twitterTeams))
+  def props(teams: List[String], twitterTeams: Map[String, String]) =
+    Props(new Topics(teams, twitterTeams))
+      .withDispatcher("akka.topics-dispatcher")
 }
 
 class Topics(val teams: List[String], val twitterTeams: Map[String, String]) extends PersistentActor with ActorLogging
