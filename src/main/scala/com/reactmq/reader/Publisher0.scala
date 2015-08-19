@@ -22,7 +22,7 @@ class Publisher0(sendServerAddress: InetSocketAddress)(implicit val system: Acto
     def nextChar() = (ThreadLocalRandom.current().nextInt(91 - 65) + 65).toChar
     val publisherName = List.fill(5)(nextChar).mkString
 
-    val con = StreamTcp().outgoingConnection(sendServerAddress)
+    val con = Tcp().outgoingConnection(sendServerAddress)
 
     val srcGen = Source(1.second, 1.second, () ⇒ { idx += 1; s"Message $idx from $publisherName" }) map { msg ⇒
       val m = msg()

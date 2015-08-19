@@ -17,8 +17,8 @@ class Broker(publishersAddress: InetSocketAddress, subscribersAddress: InetSocke
     val queue = system.actorOf(DurableQueue.props, name = "queue")
     system.log.info("Binding: [Publishers] {} - [Subscribers] {}", publishersAddress, subscribersAddress)
 
-    val pubs = StreamTcp().bind(publishersAddress)
-    val subs = StreamTcp().bind(subscribersAddress)
+    val pubs = Tcp().bind(publishersAddress.getHostName, publishersAddress.getPort)
+    val subs = Tcp().bind(subscribersAddress.getHostName, subscribersAddress.getPort)
 
     val bindPublisherFuture = pubs runForeach { conn ⇒
       system.log.info("New Publishers from: {}", conn.remoteAddress)

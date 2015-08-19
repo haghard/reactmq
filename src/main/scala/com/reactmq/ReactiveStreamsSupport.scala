@@ -1,7 +1,7 @@
 package com.reactmq
 
 import akka.actor.ActorSystem
-import akka.stream.ActorFlowMaterializer
+import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent.{ Promise, Future }
@@ -13,7 +13,7 @@ trait ReactiveStreamsSupport {
 
   implicit val timeout = Timeout(5.seconds)
 
-  implicit val materializer = ActorFlowMaterializer()
+  implicit val materializer = ActorMaterializer()
 
   def run(): Future[Unit]
 

@@ -19,8 +19,8 @@ class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: Inet
   override def run(): Future[Unit] = {
     val promise = Promise[Unit]
 
-    val pubs = StreamTcp().bind(publishersAddress)
-    val subs = StreamTcp().bind(subscribersAddress)
+    val pubs = Tcp().bind(publishersAddress.getHostName, publishersAddress.getPort)
+    val subs = Tcp().bind(subscribersAddress.getHostName, subscribersAddress.getPort)
     val topics = system.actorOf(Topics.props(tops, topicsNames), name = "topics")
 
     system.log.info("Binding: [Publishers] {} - [Subscribers] {}", publishersAddress, subscribersAddress)
@@ -42,11 +42,10 @@ class MultiBroker(publishersAddress: InetSocketAddress, subscribersAddress: Inet
     val subsFuture = subs runForeach { con ⇒
       system.log.info("New publishers from: {}", con.remoteAddress)
 
-      val sourceN = Source() { implicit b: FlowGraph.Builder ⇒
+      val sourceN = Source() { implicit b ⇒
         import FlowGraph.Implicits._
         val merge = b.add(Merge[ByteString](2))
         tops.foreach(t ⇒ Source(ActorPublisher[ByteString](system.actorOf(TopicsReader.props(t, topics)))) ~> merge)
-
         merge.out
       }
 

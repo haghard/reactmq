@@ -9,11 +9,11 @@ organization  := "com.haghard"
 name := "reactmq"
 version := "0.1"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 parallelExecution in Test := false
 promptTheme := Scalapenos
 
-val akkaVersion = "2.3.9"
+val akkaVersion = "2.3.11"
 val localMvnRepo = "/Volumes/Data/dev_build_tools/apache-maven-3.1.1/repository"
 val ivy = "~/.ivy2/local/"
 
@@ -56,7 +56,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"   %% "akka-persistence-experimental"  % akkaVersion,
   "com.typesafe.akka"   %% "akka-cluster"                   % akkaVersion,
   "com.typesafe.akka"   %% "akka-contrib"                   % akkaVersion,
-  "com.typesafe.akka"   %% "akka-stream-experimental"       % "1.0-M4",
+  "com.typesafe.akka"   %% "akka-stream-experimental"       % "1.0",
   "com.github.ironfish" %% "akka-persistence-mongo-casbah"  % "0.7.6" withSources(),
   //"com.github.krasserm" %% "streamz-akka-persistence"       % "0.2" withSources() intransitive(),
   "com.typesafe.akka"   %% "akka-slf4j"                     % akkaVersion,

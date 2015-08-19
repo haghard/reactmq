@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.ThreadLocalRandom
 
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{ StreamTcp, Sink, Source }
+import akka.stream.scaladsl.{ Tcp, Sink, Source }
 import com.reactmq.Framing._
 import com.reactmq.cluster.ClusterClientSupport
 import com.reactmq.topic.{ User, Tweet }
@@ -31,7 +31,7 @@ class TweetPublisher(publisherAddress: InetSocketAddress)(implicit val system: A
     var idx = 0
     val completion = Promise[Unit]()
 
-    val con = StreamTcp().outgoingConnection(publisherAddress)
+    val con = Tcp().outgoingConnection(publisherAddress)
 
     val srcGen = Source(1.seconds, 1.second, () ⇒ {
       idx += 1;

@@ -6,9 +6,9 @@ import java.net.InetSocketAddress
 import scala.concurrent.{ Promise, Future }
 import akka.actor.{ Props, ActorSystem }
 import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
-import akka.stream.scaladsl.{ Source, Sink, Flow, StreamTcp }
+import akka.stream.scaladsl.{ Source, Sink, Flow, Tcp }
 import com.reactmq.{ TopicDestinationProcess, ReconcileFrames, ReactiveStreamsSupport }
-import akka.stream.{ ActorFlowMaterializer, ActorFlowMaterializerSettings }
+import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
 
 object ClusterTopicsSubscriber extends App with ClusterClientSupport {
   start("topic-subscriber", (ba, system) ⇒ new TopicsSubscriber(ba.subscribersAddress)(system).run())
@@ -20,7 +20,7 @@ final class TopicsSubscriber(receiveServerAddress: InetSocketAddress)(implicit v
     system.log.info("Connect to broker: {}", receiveServerAddress)
 
     val completion = Promise[Unit]()
-    val connection = StreamTcp().outgoingConnection(receiveServerAddress)
+    val connection = Tcp().outgoingConnection(receiveServerAddress)
 
     val ps = system.actorOf(Props(new TopicDestinationProcess(completion)))
     val s = ActorSubscriber[Tweet](ps)
@@ -31,8 +31,8 @@ final class TopicsSubscriber(receiveServerAddress: InetSocketAddress)(implicit v
     val sink = Flow[ByteString].mapConcat(reconcileFrames.apply2).to(Sink(s))
     val source = Source[ByteString](p)
 
-    connection.runWith(source, sink)(ActorFlowMaterializer(
-      ActorFlowMaterializerSettings(system)
+    connection.runWith(source, sink)(ActorMaterializer(
+      ActorMaterializerSettings(system)
         .withInputBuffer(initialSize = 2, maxSize = 4)
         .withDispatcher("akka.subscriber-dispatcher")))
 
