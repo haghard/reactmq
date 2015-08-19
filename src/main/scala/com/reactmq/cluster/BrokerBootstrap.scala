@@ -71,12 +71,9 @@ class BrokerGuard(in: InetSocketAddress, out: InetSocketAddress, topics: List[St
   }
 
   override def receive = {
-    case Terminated(a) ⇒
-      log.info("Actor  Terminated {}", a)
     case GetBrokerAddresses ⇒
       log.info("GetBrokerAddresses from {}", sender())
       sender() ! BrokerAddresses(in, out)
-      context.watch(sender())
   }
 }
 

@@ -78,5 +78,5 @@ addCommandAlias("broker2", "run-main com.reactmq.cluster.ClusteredTopicsBroker -
 
 addCommandAlias("pub", "run-main com.reactmq.reader.ClusterTopicsPublisher --TOPIC=hou,okc,mia --AKKA_PORT=2554 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
 
-//all
+//all topics
 addCommandAlias("sub", "run-main com.reactmq.cluster.ClusterTopicsSubscriber --AKKA_PORT=2556 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")

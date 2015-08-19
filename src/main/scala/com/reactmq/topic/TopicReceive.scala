@@ -37,10 +37,10 @@ trait TopicReceive extends TopicsOps {
       persistAsync(MessageDeleted(id)) { _ ⇒ }
 
     case EraseSubscriber(topicName, actor) ⇒
-      log.info(s"*********EraseSubscriber from topic {} actor {}", topicName, actor)
+      log.info(s"EraseSubscriber from topic {} actor {}", topicName, actor)
       val clean = topicWaiters(topicName) - actor
       topicWaiters += (topicName -> clean)
-      log.info("**********After EraseSubscriber topic {}  {}", topicName, topicWaiters)
+      log.info("EraseSubscriber topic {}  {}", topicName, topicWaiters)
 
     case PersistenceFailure(payload, seqNum, cause) ⇒
       log.info("Journal fails to write a event: {}", cause.getMessage)
@@ -72,6 +72,6 @@ trait TopicReceive extends TopicsOps {
 
   private def submitWaiter(topic: String, actor: ActorRef, reqSize: Int) {
     topicWaiters(topic) += actor -> (topicWaiters(topic).getOrElse(actor, 0) + reqSize)
-    //log.info("Submit waiter for topic {} with size {}", topic, reqSize)
+    log.info("Submit waiter for topic {} with size {}", topic, reqSize)
   }
 }

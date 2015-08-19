@@ -1,13 +1,13 @@
 package com.reactmq.topic
 
-import akka.stream.{ Supervision, ActorMaterializer, ActorMaterializerSettings }
 import com.reactmq._
-import java.net.InetSocketAddress
-import akka.actor.ActorSystem
-import akka.stream.scaladsl._
 import akka.util.ByteString
+import akka.stream.scaladsl._
+import akka.actor.ActorSystem
+import java.net.InetSocketAddress
 import com.reactmq.topic.Topics.ConfirmTopicMessage
 import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
+import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
 
 import scala.concurrent.{ Future, Promise }
 

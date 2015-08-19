@@ -24,7 +24,7 @@ trait ClusterClientSupport {
       .withFallback(ConfigFactory.load("cluster-client"))
 
     val system = ActorSystem(name, conf)
-    implicit val EC = system.dispatchers.lookup("client-dispatcher")
+    implicit val EC = system.dispatchers.lookup("akka.client-dispatcher")
 
     val message = new StringBuilder().append('\n')
       .append("=====================================================================================================================================")
