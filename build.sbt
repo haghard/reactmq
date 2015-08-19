@@ -51,17 +51,14 @@ scalacOptions in Compile ++= Seq(
 javacOptions in Compile ++= Seq("-source", "1.6", "-target", "1.6", "-Xlint:unchecked", "-Xlint:deprecation")
 
 libraryDependencies ++= Seq(
-  // akka
   "com.typesafe.akka"   %% "akka-actor"                     % akkaVersion,
   "com.typesafe.akka"   %% "akka-persistence-experimental"  % akkaVersion,
   "com.typesafe.akka"   %% "akka-cluster"                   % akkaVersion,
   "com.typesafe.akka"   %% "akka-contrib"                   % akkaVersion,
   "com.typesafe.akka"   %% "akka-stream-experimental"       % "1.0",
   "com.github.ironfish" %% "akka-persistence-mongo-casbah"  % "0.7.6" withSources(),
-  //"com.github.krasserm" %% "streamz-akka-persistence"       % "0.2" withSources() intransitive(),
   "com.typesafe.akka"   %% "akka-slf4j"                     % akkaVersion,
   "io.spray"            %% "spray-json"                     % "1.2.6",
-
   // util
   "org.scalatest" %% "scalatest" % "2.2.2" % "test",
   "joda-time" % "joda-time" % "2.5",

@@ -19,31 +19,30 @@ object ClusterTopicsPublisher extends App with ClusterClientSupport {
 
 class TweetPublisher(publisherAddress: InetSocketAddress)(implicit val system: ActorSystem) extends ReactiveStreamsSupport {
 
-  private val topics = Vector("cle", "ind")
+  val topics = Vector("cle", "ind")
 
   def nextChar = (ThreadLocalRandom.current().nextInt(91 - 65) + 65).toChar
 
   val publisherName = List.fill(5)(nextChar).mkString
 
   override def run(): Future[Unit] = {
-    system.log.info("Publisher address {}", publisherAddress)
-
     var idx = 0
+    system.log.info("Publisher address {}", publisherAddress)
     val completion = Promise[Unit]()
 
     val con = Tcp().outgoingConnection(publisherAddress)
 
-    val srcGen = Source(1.seconds, 1.second, () ⇒ {
+    val tweetSource = Source(1.seconds, 1.second, () ⇒ {
       idx += 1;
       Tweet(idx.toString, "tweet body", Some(User(id = publisherName)),
         Some(topics(ThreadLocalRandom.current.nextInt(topics.size))))
     }).map { gen ⇒
       val t = gen()
-      system.log.info(s"publish: $t")
+      system.log.info(s"Publish: $t")
       toBytes(t)
     }
 
-    srcGen.via(con)
+    tweetSource.via(con)
       .runWith(Sink.onComplete(t ⇒ completion.complete(t)))
 
     completion.future

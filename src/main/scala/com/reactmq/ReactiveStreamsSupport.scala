@@ -20,7 +20,7 @@ trait ReactiveStreamsSupport {
   def handleIOFailure(ioFuture: Future[Any], msg: ⇒ String, failPromise: Option[Promise[Unit]] = None) {
     ioFuture.onFailure {
       case e: Exception ⇒
-        system.log.info("*******IO error {}", e.getMessage)
+        system.log.info("Critical error {}", e.getMessage)
         failPromise.foreach(_.failure(e))
     }
   }
