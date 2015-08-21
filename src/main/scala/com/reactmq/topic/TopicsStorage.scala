@@ -17,7 +17,7 @@ trait TopicsStorage {
       acc += c -> mutable.PriorityQueue[InternalMessage]()
     }
 
-  protected val undeliveredId = mutable.HashMap[String, InternalMessage]()
+  protected val undeliveredCache = mutable.HashMap[String, InternalMessage]()
 
   case class InternalMessage(id: String, var nextDelivery: Long, t: Tweet) extends Comparable[InternalMessage] {
 

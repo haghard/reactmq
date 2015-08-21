@@ -1,7 +1,7 @@
 package com.reactmq
 
 import akka.util.ByteString
-import akka.actor.ActorLogging
+import akka.actor.{Props, ActorLogging}
 import com.reactmq.topic.Tweet
 import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import akka.stream.actor.ActorSubscriberMessage.{ OnError, OnComplete, OnNext }
@@ -16,7 +16,14 @@ import scala.util.Failure
  * http://bryangilbert.com/blog/2015/02/04/akka-reactive-streams/index.html
  *
  */
-class ConfirmationProcessor(completion: Promise[Unit]) extends ActorSubscriber
+
+object ConfirmationProcessor {
+  def prop(completion: Promise[Unit]) =
+    Props(classOf[ConfirmationProcessor], completion)
+      .withDispatcher("akka.client-dispatcher")
+}
+
+class ConfirmationProcessor private(completion: Promise[Unit]) extends ActorSubscriber
     with ActorPublisher[ByteString]
     with ActorLogging {
 

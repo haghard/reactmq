@@ -1,6 +1,6 @@
 package com.reactmq.topic
 
-import akka.actor.{ ActorRef, ActorLogging }
+import akka.actor.ActorLogging
 import com.reactmq.util.NowProvider
 
 import scala.annotation.tailrec
@@ -11,7 +11,7 @@ import com.reactmq.topic.Topics.{ MessageData, MessageNextDeliveryUpdated }
 trait TopicsOps {
   self: TopicsStorage with ActorLogging ⇒
 
-  private lazy val visibilityTimeout = 20.seconds
+  private val visibilityTimeout = 20.seconds
 
   type Received = (MessageData, MessageNextDeliveryUpdated)
 
@@ -24,7 +24,7 @@ trait TopicsOps {
       q ← undeliveredTopics.get(t)
     } yield {
       q += internalMessage
-      undeliveredId(internalMessage.id) = internalMessage
+      undeliveredCache(internalMessage.id) = internalMessage
       log.info("Incoming message for topic: {} message: {}", t, internalMessage)
     }
 
@@ -54,7 +54,7 @@ trait TopicsOps {
         if (internalMessage.nextDelivery > deliveryTime) {
           q += internalMessage
           None
-        } else if (undeliveredId.contains(id)) {
+        } else if (undeliveredCache.contains(id)) {
           internalMessage.nextDelivery = newNextDelivery
           q += internalMessage
 
@@ -68,7 +68,7 @@ trait TopicsOps {
   private def computeNextDelivery = nowProvider.nowMillis + visibilityTimeout.toMillis
 
   protected def deleteMessage(id: String) {
-    undeliveredId.remove(id).fold(log.debug(s"Unknown message: $id")) {
+    undeliveredCache.remove(id).fold(log.debug(s"Unknown message: $id")) {
       _ ⇒ log.info(s"Delete confirmed message $id")
     }
   }

@@ -56,7 +56,7 @@ class TweetPublisher(publisherAddress: InetSocketAddress, topics: Vector[String]
 
     val con = Tcp().outgoingConnection(publisherAddress)
 
-    val tweetSource = Source(1.seconds, 200.millisecond, () ⇒ {
+    val twitterSource = Source(1.seconds, 200.millisecond, () ⇒ {
       idx += 1
       Tweet(idx.toString, "tweet body", Some(User(id = publisherName)),
         Some(topics(ThreadLocalRandom.current.nextInt(topics.size))))
@@ -66,7 +66,7 @@ class TweetPublisher(publisherAddress: InetSocketAddress, topics: Vector[String]
       toBytes(t)
     }
 
-    tweetSource.via(con)
+    twitterSource.via(con)
       .runWith(Sink.onComplete(t ⇒ completion.complete(t)))(materializer)
 
     completion.future

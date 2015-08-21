@@ -4,7 +4,7 @@ import akka.util.ByteString
 import com.reactmq.topic.Tweet
 import java.net.InetSocketAddress
 import scala.concurrent.{ Promise, Future }
-import akka.actor.{ Props, ActorSystem }
+import akka.actor.ActorSystem
 import akka.stream.actor.{ ActorPublisher, ActorSubscriber }
 import akka.stream.scaladsl.{ Source, Sink, Flow, Tcp }
 import com.reactmq.{ ConfirmationProcessor, Framers, ReactiveStreamsSupport }
@@ -31,7 +31,7 @@ object ClusterTopicsSubscriber extends App with ClusterClientSupport
 }
 
 /**
- * Can receive duplicates
+ * Can receive duplicates, at-least-once delivery
  *
  * @param receiveServerAddress
  * @param system
@@ -48,7 +48,7 @@ final class TopicsSubscriber(receiveServerAddress: InetSocketAddress)(implicit v
     val completion = Promise[Unit]()
     val connection = Tcp().outgoingConnection(receiveServerAddress)
 
-    val processor = system.actorOf(Props(new ConfirmationProcessor(completion)).withDispatcher(name))
+    val processor = system.actorOf(ConfirmationProcessor.prop(completion))
     val s = ActorSubscriber[Tweet](processor)
     val p = ActorPublisher[ByteString](processor)
 
@@ -57,7 +57,8 @@ final class TopicsSubscriber(receiveServerAddress: InetSocketAddress)(implicit v
     val sink = Flow[ByteString].mapConcat(reconcileFrames.apply2).to(Sink(s))
     val source = Source[ByteString](p)
 
-    connection.runWith(source, sink)(materializer)
+    connection
+      .runWith(source, sink)(materializer)
     completion.future
   }
 }

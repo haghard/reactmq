@@ -37,7 +37,6 @@ trait TopicReceive extends TopicsOps {
       persistAsync(MessageDeleted(id)) { _ ⇒ }
 
     case EraseSubscriber(topicName, actor) ⇒
-      log.info(s"EraseSubscriber from topic {} actor {}", topicName, actor)
       val clean = topicWaiters(topicName) - actor
       topicWaiters += (topicName -> clean)
       log.info("EraseSubscriber topic {}  {}", topicName, topicWaiters)
@@ -51,19 +50,19 @@ trait TopicReceive extends TopicsOps {
       (topic, subscribers) ← topicWaiters
     } yield {
       subscribers.foreach { kv ⇒
-        val newCount = kv._2
-        val receiver = kv._1
-        val received = receiveMessages(topic, newCount)
+        val reqSize = kv._2
+        val requester = kv._1
+        val received = receiveMessages(topic, reqSize)
         persistAsync(received.map(_._2)) { _ ⇒ }
         if (received != Nil) {
-          receiver ! ReceivedTopicMessages(received.map(_._1))
-          val reducedReqSize = newCount - received.size
+          requester ! ReceivedTopicMessages(received.map(_._1))
+          val reducedReqSize = reqSize - received.size
           if (reducedReqSize > 0) {
-            topicWaiters(topic) += receiver -> reducedReqSize
+            topicWaiters(topic) += requester -> reducedReqSize
             //log.info("Update topicWaiters {}", topicWaiters)
           } else {
             //log.info("Remove waiter from waiters {}", receiver)
-            topicWaiters(topic) -= receiver
+            topicWaiters(topic) -= requester
           }
         }
       }
