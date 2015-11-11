@@ -1,7 +1,7 @@
 package com.reactmq.topic
 
 import akka.actor.ActorLogging
-import akka.persistence.{ PersistenceFailure, PersistentActor, RecoveryCompleted }
+import akka.persistence.{ PersistentActor, RecoveryCompleted }
 import com.reactmq.topic.Topics.{ MessageDeleted, MessageNextDeliveryUpdated, MessageAdded }
 
 trait TopicsRecover {
@@ -23,7 +23,6 @@ trait TopicsRecover {
       }
       log.info(s"Undelivered messages size: {}", undeliveredCache.size)
 
-    case PersistenceFailure(payload, seqNum, cause) ⇒
-      log.info("Journal fails to write a event: {}", cause.getMessage)
+    //case PersistenceFailure(payload, seqNum, cause) ⇒ log.info("Journal fails to write a event: {}", cause.getMessage)
   }
 }

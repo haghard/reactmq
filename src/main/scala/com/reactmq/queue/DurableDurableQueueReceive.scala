@@ -3,7 +3,7 @@ package com.reactmq.queue
 import scala.collection._
 import scala.annotation.tailrec
 import akka.actor.{ ActorLogging, ActorRef }
-import akka.persistence.{ PersistenceFailure, PersistentActor }
+import akka.persistence.PersistentActor
 
 trait DurableDurableQueueReceive extends DurableQueueOps {
   this: DurableQueueStorage with PersistentActor with ActorLogging ⇒
@@ -26,8 +26,7 @@ trait DurableDurableQueueReceive extends DurableQueueOps {
       deleteMessage(id)
       persistAsync(MessageDeleted(id)) { _ ⇒ }
 
-    case PersistenceFailure(payload, seqNum, cause) ⇒
-      log.info("Journal fails to write a event: {}", cause.getMessage)
+    //case PersistenceFailure(payload, seqNum, cause) ⇒ log.info("Journal fails to write a event: {}", cause.getMessage)
   }
 
   @tailrec

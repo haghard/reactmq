@@ -1,7 +1,7 @@
 package com.reactmq
 
 import akka.util.ByteString
-import akka.actor.{Props, ActorLogging}
+import akka.actor.{ Props, ActorLogging }
 import com.reactmq.topic.Tweet
 import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import akka.stream.actor.ActorSubscriberMessage.{ OnError, OnComplete, OnNext }
@@ -23,7 +23,7 @@ object ConfirmationProcessor {
       .withDispatcher("akka.client-dispatcher")
 }
 
-class ConfirmationProcessor private(completion: Promise[Unit]) extends ActorSubscriber
+class ConfirmationProcessor private (completion: Promise[Unit]) extends ActorSubscriber
     with ActorPublisher[ByteString]
     with ActorLogging {
 
@@ -36,7 +36,7 @@ class ConfirmationProcessor private(completion: Promise[Unit]) extends ActorSubs
 
   override def receive: Receive = {
     case OnNext(t: Tweet) ⇒
-      Thread.sleep(500)
+      //Thread.sleep(500)
       log.info("Delivered tweet: {}", t)
       queue += Framing.createFrame(t.id)
       tryReply

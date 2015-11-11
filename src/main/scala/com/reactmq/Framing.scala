@@ -1,7 +1,6 @@
 package com.reactmq
 
 import akka.util.ByteString
-import javax.annotation.concurrent.NotThreadSafe
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
@@ -66,7 +65,6 @@ object Framing {
   }
 }
 
-@NotThreadSafe
 class Framers() {
   import Framing.SizeBytes
 

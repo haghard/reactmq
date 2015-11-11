@@ -13,7 +13,8 @@ scalaVersion := "2.11.7"
 parallelExecution in Test := false
 promptTheme := Scalapenos
 
-val akkaVersion = "2.3.11"
+val Akka = "2.4.0"
+val AkkaStreamsVersion = "2.0-M1"
 val localMvnRepo = "/Volumes/Data/dev_build_tools/apache-maven-3.1.1/repository"
 val ivy = "~/.ivy2/local/"
 
@@ -49,32 +50,33 @@ scalacOptions in Compile ++= Seq(
 javacOptions in Compile ++= Seq("-source", "1.6", "-target", "1.6", "-Xlint:unchecked", "-Xlint:deprecation")
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"   %% "akka-actor"                     % akkaVersion,
-  "com.typesafe.akka"   %% "akka-persistence-experimental"  % akkaVersion,
-  "com.typesafe.akka"   %% "akka-cluster"                   % akkaVersion,
-  "com.typesafe.akka"   %% "akka-contrib"                   % akkaVersion,
-  "com.typesafe.akka"   %% "akka-stream-experimental"       % "1.0",
-  "com.github.ironfish" %% "akka-persistence-mongo-casbah"  % "0.7.6" withSources(),
-  "com.typesafe.akka"   %% "akka-slf4j"                     % akkaVersion,
-  "io.spray"            %% "spray-json"                     % "1.2.6",
-  "org.scalaz"          %% "scalaz-core"                    % "7.1.0",
-  "org.scalatest"       %% "scalatest" % "2.2.2" % "test",
-  "joda-time"           %   "joda-time" % "2.5",
-  "org.joda"            %  "joda-convert" % "1.7"
+  "com.typesafe.akka"       %%    "akka-actor"                  % Akka,
+  "com.typesafe.akka"       %%    "akka-cluster-sharding"       %  Akka withSources(),
+  "com.typesafe.akka"       %%    "akka-cluster-tools"          %  Akka withSources(),
+  "com.typesafe.akka"       %%    "akka-persistence"            % Akka withSources() intransitive(),
+  "com.github.krasserm"     %%    "akka-persistence-cassandra"  % "0.4",
+  "com.typesafe.akka"       %%    "akka-stream-experimental"    % AkkaStreamsVersion,
+  "io.spray"                %%    "spray-json"                  % "1.2.6",
+  "org.scalaz"              %%    "scalaz-core"                 % "7.1.4",
+  "org.scalatest"           %%    "scalatest"                   % "2.2.2" % "test",
+  "joda-time"               %     "joda-time"                   % "2.5",
+  "org.joda"                %     "joda-convert"                % "1.7"
 )
 
 libraryDependencies ++= Seq(
   "org.slf4j"               %   "slf4j-api"       % "1.7.7",
-  "ch.qos.logback"          %   "logback-core"    % "1.1.2",
-  "ch.qos.logback"          %   "logback-classic" % "1.1.2"
+  "ch.qos.logback"          %   "logback-classic" % "1.1.2",
+  "com.typesafe.akka"       %%  "akka-slf4j"      % Akka
 )
 
 publishMavenStyle := true
 publishTo := Some(Resolver.file("file",  new File(localMvnRepo)))
 ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
 
-addCommandAlias("broker1", "run-main com.reactmq.cluster.ClusteredTopicsBroker --TOPIC=hou,okc,mia,cle --AKKA_PORT=2551 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
-addCommandAlias("broker2", "run-main com.reactmq.cluster.ClusteredTopicsBroker --TOPIC=hou,okc,mia,cle --AKKA_PORT=2552 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
+val cassandra = "192.168.0.134"
+
+addCommandAlias("broker1", "run-main com.reactmq.cluster.ClusteredTopicsBroker --TOPIC=hou,okc,mia,cle --AKKA_PORT=2551 --SEEDS=192.168.0.62:2551,192.168.0.62:2552 --DB_HOSTS=" + cassandra)
+addCommandAlias("broker2", "run-main com.reactmq.cluster.ClusteredTopicsBroker --TOPIC=hou,okc,mia,cle --AKKA_PORT=2552 --SEEDS=192.168.0.62:2551,192.168.0.62:2552 --DB_HOSTS=" + cassandra)
 
 addCommandAlias("pub", "run-main com.reactmq.reader.ClusterTopicsPublisher --TOPIC=hou,okc,mia --AKKA_PORT=2554 --SEEDS=192.168.0.62:2551,192.168.0.62:2552")
 

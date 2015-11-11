@@ -9,6 +9,7 @@ trait SeedNodeSupport {
   val AKKA_PORT_VAR = "AKKA_PORT"
   val SEEDS_VAR = "SEEDS"
   val TOPIC_VAR = "TOPIC"
+  val DB_HOSTS = "DB_HOSTS"
 
   val ipExpression = """\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}"""
 
@@ -61,7 +62,7 @@ trait SeedNodeSupport {
       case (p, s, a) ⇒ (p, s, a.getHostAddress)
     }
 
-  def validateAll(port: String, seeds: String, topics: String): ValidationNel[String, (Int, String, String, Vector[String])] = {
+  def validateAll(port: String, seeds: String, topics: String, cassandaHost: String): ValidationNel[String, (Int, String, String, Vector[String])] = {
     (validate(port, seeds) |@| validateTopics(topics)) {
       case (vs, t) ⇒ (vs._1, vs._2, vs._3, t)
     }

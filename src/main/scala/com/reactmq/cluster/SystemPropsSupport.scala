@@ -11,7 +11,7 @@ trait SystemPropsSupport {
 
   def applySystemProperties(args: Array[String]) = {
     for ((key, value) ← argsToProps(args)) {
-      println(s"set ENV-PROPERTY: $key - $value")
+      println(s"set SYSTEM_PROPERTY: $key - $value")
       System.setProperty(key, value)
     }
   }

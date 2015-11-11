@@ -1,7 +1,7 @@
 package com.reactmq.topic
 
 import akka.actor.{ ActorLogging, ActorRef }
-import akka.persistence.{ PersistenceFailure, PersistentActor }
+import akka.persistence.PersistentActor
 import com.reactmq.topic.Topics._
 import com.reactmq.topic.TopicReader.EraseSubscriber
 
@@ -41,8 +41,7 @@ trait TopicReceive extends TopicsOps {
       topicWaiters += (topicName -> clean)
       log.info("EraseSubscriber topic {}  {}", topicName, topicWaiters)
 
-    case PersistenceFailure(payload, seqNum, cause) ⇒
-      log.info("Journal fails to write a event: {}", cause.getMessage)
+    //case PersistenceFailure(payload, seqNum, cause) ⇒ log.info("Journal fails to write a event: {}", cause.getMessage)
   }
 
   private def tryReply() {

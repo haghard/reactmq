@@ -1,9 +1,9 @@
 package com.reactmq.cluster
 
+import akka.cluster.client.{ ClusterClient, ClusterClientSettings }
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import akka.contrib.pattern.ClusterClient
 import akka.actor.{ ActorSystem, AddressFromURIString, RootActorPath }
 
 import scala.collection.JavaConverters._
@@ -26,6 +26,12 @@ trait ClusterClientSupport {
     val system = ActorSystem(name, conf)
     implicit val EC = system.dispatchers.lookup("akka.client-dispatcher")
 
+    val initialContacts = conf.getStringList("cluster.client.initial-contact-points").asScala.map {
+      case AddressFromURIString(addr) ⇒ RootActorPath(addr) / "system" / "receptionist"
+    }.toSet
+
+    val settings = ClusterClientSettings.create(system).withInitialContacts(initialContacts)
+
     val message = new StringBuilder().append('\n')
       .append("=====================================================================================================================================")
       .append('\n')
@@ -33,17 +39,14 @@ trait ClusterClientSupport {
       .append('\n')
       .append(s"★ ★ ★ ★ ★ ★  Broker contact points: ${system.settings.config.getStringList("cluster.client.initial-contact-points")}  ★ ★ ★ ★ ★ ★")
       .append('\n')
-      .append("=====================================================================================================================================")
+      .append(s"★ ★ ★ ★ ★ ★  Cluster client contact points: ${initialContacts.mkString(";")} ★ ★ ★ ★ ★ ★")
       .append('\n')
+      .append("=====================================================================================================================================")
       .toString
 
     system.log.info(message)
 
-    val initialContacts = conf.getStringList("cluster.client.initial-contact-points").asScala.map {
-      case AddressFromURIString(addr) ⇒ system.actorSelection(RootActorPath(addr) / "user" / "receptionist")
-    }.toSet
-
-    val clusterClient = system.actorOf(ClusterClient.props(initialContacts), "cluster-client")
+    val clusterClient = system.actorOf(ClusterClient.props(settings), "cluster-client")
 
     def go(): Unit = {
       val clientFlow = (clusterClient ? ClusterClient.Send("/user/broker-guard/broker", GetBrokerAddresses, localAffinity = false))

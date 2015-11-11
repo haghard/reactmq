@@ -2,7 +2,7 @@ package com.reactmq.queue
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorLogging
-import akka.persistence.{ PersistenceFailure, RecoveryCompleted }
+import akka.persistence.RecoveryCompleted
 
 trait DurableQueueRecover {
   this: DurableQueueStorage with ActorLogging ⇒
@@ -21,7 +21,6 @@ trait DurableQueueRecover {
       messageQueue ++= messagesById.values
       log.info(s"Undelivered messages size: {}", messagesById.size)
 
-    case PersistenceFailure(payload, seqNum, cause) ⇒
-      log.info("Journal fails to write a event: {}", cause.getMessage)
+    //case PersistenceFailure(payload, seqNum, cause) ⇒ log.info("Journal fails to write a event: {}", cause.getMessage)
   }
 }
